@@ -13,7 +13,12 @@ import {
   MenuItem,
   SelectChangeEvent,
   Grid,
+  Fade,
+  Grow,
+  useTheme,
+  Paper,
 } from '@mui/material';
+import { GridOnOutlined } from '@mui/icons-material';
 import { BusinessApplicationVulnerabilityData } from '../services/api';
 
 // Initialize Heatmap module
@@ -73,6 +78,7 @@ const RiskLegend = () => {
 const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
   vulnerabilityData,
 }) => {
+  const theme = useTheme();
   const [viewMode, setViewMode] = useState<'total' | 'critical' | 'high'>('total');
   const [heatmapData, setHeatmapData] = useState<HeatmapDataPoint[]>([]);
 
@@ -300,76 +306,205 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
   };
 
   return (
-    <Card elevation={3} sx={{ mb: 4 }}>
-      <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5" component="h2" gutterBottom>
-            Business Applications Vulnerability Heatmap
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>View Mode</InputLabel>
-            <Select value={viewMode} label="View Mode" onChange={handleViewModeChange}>
-              <MenuItem value="total">Total</MenuItem>
-              <MenuItem value="critical">Critical</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-
-        {heatmapData.length > 0 ? (
-          <>
-            <Box mb={2}>
-              <Grid container spacing={1}>
-                {getLegendItems().map((item) => (
-                  <Grid item key={item.label}>
-                    <Box
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '4px 12px',
-                        borderRadius: '16px',
-                        backgroundColor: item.color,
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      {`${item.label}: ${item.count}`}
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
+    <Fade in={true} timeout={1400}>
+      <Card 
+        elevation={8}
+        sx={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          borderRadius: 3,
+          overflow: 'hidden',
+          position: 'relative',
+          mb: 4,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+          },
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <GridOnOutlined 
+                sx={{ 
+                  fontSize: 32, 
+                  mr: 2, 
+                  color: theme.palette.primary.main,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                }} 
+              />
+              <Typography 
+                variant="h6" 
+                fontWeight="bold"
+                sx={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Business Applications Vulnerability Heatmap
+              </Typography>
             </Box>
-            <HighchartsReact highcharts={Highcharts} options={chartOptions} />
-            <Typography variant="body2" color="text.secondary" mt={2}>
-              Each cell represents a business application with real vulnerability data from mapped repositories. 
-              The color intensity and numbers indicate the {viewMode === 'total' ? 'total' : viewMode} vulnerability count.
-              Hover over cells for detailed breakdown of all vulnerability types.
-            </Typography>
-            <RiskLegend />
-          </>
-        ) : (
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            height={300}
-            bgcolor="grey.50"
-            borderRadius={1}
-          >
-            <Box textAlign="center">
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No vulnerability data available for heatmap
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Business applications need to have mapped repositories with vulnerability scanning enabled
-              </Typography>
+            <Box
+              sx={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 2,
+                p: 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                border: '1px solid rgba(102, 126, 234, 0.2)',
+              }}
+            >
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel 
+                  sx={{ 
+                    color: theme.palette.text.primary,
+                    '&.Mui-focused': { 
+                      color: theme.palette.primary.main 
+                    },
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  View Mode
+                </InputLabel>
+                <Select 
+                  value={viewMode} 
+                  label="View Mode" 
+                  onChange={handleViewModeChange}
+                  sx={{ 
+                    color: theme.palette.text.primary,
+                    backgroundColor: 'white',
+                    borderRadius: 1,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(102, 126, 234, 0.3)',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: theme.palette.text.primary,
+                    },
+                    '& .MuiSelect-select': {
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      elevation: 8,
+                      sx: {
+                        backgroundColor: 'white',
+                        borderRadius: 2,
+                        mt: 1,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        '& .MuiMenuItem-root': {
+                          color: theme.palette.text.primary,
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          py: 1.5,
+                          px: 2,
+                          '&:hover': {
+                            backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                          },
+                          '&.Mui-selected': {
+                            backgroundColor: 'rgba(102, 126, 234, 0.12)',
+                            color: theme.palette.primary.main,
+                            fontWeight: 600,
+                            '&:hover': {
+                              backgroundColor: 'rgba(102, 126, 234, 0.16)',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="total">Total Vulnerabilities</MenuItem>
+                  <MenuItem value="critical">Critical Only</MenuItem>
+                  <MenuItem value="high">High Priority Only</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
           </Box>
-        )}
-      </CardContent>
-    </Card>
+
+          {heatmapData.length > 0 ? (
+            <Grow in={true} timeout={1800}>
+              <Box>
+                <Box mb={3}>
+                  <Grid container spacing={2}>
+                    {getLegendItems().map((item) => (
+                      <Grid item key={item.label}>
+                        <Paper
+                          elevation={4}
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}CC 100%)`,
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem',
+                            boxShadow: `0 4px 12px ${item.color}40`,
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: `0 6px 20px ${item.color}60`,
+                            },
+                          }}
+                        >
+                          {`${item.label}: ${item.count}`}
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+                <Box sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: 4 }}>
+                  <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+                </Box>
+                <Typography variant="body2" color="text.secondary" mt={3} sx={{ fontStyle: 'italic' }}>
+                  Each cell represents a business application with real vulnerability data from mapped repositories. 
+                  The color intensity and numbers indicate the {viewMode === 'total' ? 'total' : viewMode} vulnerability count.
+                  Hover over cells for detailed breakdown of all vulnerability types.
+                </Typography>
+                <RiskLegend />
+              </Box>
+            </Grow>
+          ) : (
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              height={300}
+              sx={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                borderRadius: 2,
+                border: '2px dashed rgba(0,0,0,0.1)',
+              }}
+            >
+              <Box textAlign="center">
+                <GridOnOutlined sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No vulnerability data available for heatmap
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Business applications need to have mapped repositories with vulnerability scanning enabled
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Fade>
   );
 };
 
