@@ -1,6 +1,12 @@
 import axios from 'axios';
+import { 
+  CodeScanningAlert, 
+  SecretScanningAlert, 
+  DependabotAlert, 
+  EnterpriseVulnerabilityDashboard 
+} from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 export interface GitHubRepository {
   id: number;
@@ -119,7 +125,7 @@ export interface OrganizationVulnerabilityStats {
 }
 
 // Create axios instance with default config
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
 });
@@ -138,7 +144,7 @@ export const githubApi = {
   // Health check endpoint
   healthCheck: async (): Promise<boolean> => {
     try {
-      const response = await api.get('/health');
+      const response = await api.get('/api/health');
       return response.status === 200;
     } catch (error) {
       console.error('Health check failed:', error);
@@ -149,7 +155,7 @@ export const githubApi = {
   validateToken: async (token: string): Promise<boolean> => {
     try {
       // Create a separate axios instance for token validation to avoid interceptor conflicts
-      const response = await axios.post(`${API_BASE_URL}/github/validate-token`, {}, {
+      const response = await axios.post(`${API_BASE_URL}/api/github/validate-token`, {}, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -173,7 +179,7 @@ export const githubApi = {
 
   getOrganizationRepositories: async (orgName: string): Promise<GitHubRepository[]> => {
     try {
-      const response = await api.get(`/github/organizations/${orgName}/repositories`);
+      const response = await api.get(`/api/github/organizations/${orgName}/repositories`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch repositories:', error);
@@ -183,7 +189,7 @@ export const githubApi = {
 
   getOrganizationRepositoriesWithLanguages: async (orgName: string): Promise<GitHubRepository[]> => {
     try {
-      const response = await api.get(`/github/organizations/${orgName}/repositories-with-languages`);
+      const response = await api.get(`/api/github/organizations/${orgName}/repositories-with-languages`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch repositories with languages:', error);
@@ -193,7 +199,7 @@ export const githubApi = {
 
   getVulnerabilityAlerts: async (orgName: string, repoName: string): Promise<any> => {
     try {
-      const response = await api.get(`/github/organizations/${orgName}/repositories/${repoName}/vulnerability-alerts`);
+      const response = await api.get(`/api/github/organizations/${orgName}/repositories/${repoName}/vulnerability-alerts`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch vulnerability alerts:', error);
@@ -203,7 +209,7 @@ export const githubApi = {
 
   getSecurityAdvisories: async (orgName: string, repoName: string): Promise<any> => {
     try {
-      const response = await api.get(`/github/organizations/${orgName}/repositories/${repoName}/security-advisories`);
+      const response = await api.get(`/api/github/organizations/${orgName}/repositories/${repoName}/security-advisories`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch security advisories:', error);
@@ -214,7 +220,7 @@ export const githubApi = {
   getOrganizationVulnerabilityStats: async (orgName: string): Promise<OrganizationVulnerabilityStats> => {
     try {
       console.log('Fetching organization vulnerability stats for:', orgName);
-      const response = await api.get(`/github/organizations/${orgName}/vulnerability-stats`);
+      const response = await api.get(`/api/github/organizations/${orgName}/vulnerability-stats`);
       console.log('Organization vulnerability stats response:', response.data);
       return response.data;
     } catch (error) {
@@ -225,15 +231,73 @@ export const githubApi = {
 };
 
 export const getEnterpriseVulnerabilities = async (enterprise: string): Promise<any> => {
-    const response = await api.get(`/enterprise/${enterprise}/vulnerabilities`);
+    const response = await api.get(`/api/enterprise/${enterprise}/vulnerabilities`, {
+        timeout: 300000 // 5 minutes timeout for enterprise data extraction
+    });
     return response.data;
+};
+
+// Enterprise Vulnerability Dashboard API service
+export const enterpriseVulnerabilityApi = {
+  // Get all code scanning alerts for an enterprise
+  getCodeScanningAlerts: async (enterprise: string): Promise<CodeScanningAlert[]> => {
+    try {
+      const response = await api.get(`/api/enterprise/${enterprise}/code-scanning/alerts`, {
+        timeout: 300000 // 5 minutes timeout for enterprise data extraction
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch enterprise code scanning alerts:', error);
+      throw error;
+    }
+  },
+
+  // Get all secret scanning alerts for an enterprise
+  getSecretScanningAlerts: async (enterprise: string): Promise<SecretScanningAlert[]> => {
+    try {
+      const response = await api.get(`/api/enterprise/${enterprise}/secret-scanning/alerts`, {
+        timeout: 300000 // 5 minutes timeout for enterprise data extraction
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch enterprise secret scanning alerts:', error);
+      throw error;
+    }
+  },
+
+  // Get all Dependabot alerts for an enterprise
+  getDependabotAlerts: async (enterprise: string): Promise<DependabotAlert[]> => {
+    try {
+      const response = await api.get(`/api/enterprise/${enterprise}/dependabot/alerts`, {
+        timeout: 300000 // 5 minutes timeout for enterprise data extraction
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch enterprise Dependabot alerts:', error);
+      throw error;
+    }
+  },
+
+  // Get consolidated enterprise vulnerability dashboard data
+  getDashboardData: async (enterprise: string): Promise<EnterpriseVulnerabilityDashboard> => {
+    try {
+      // Use the new consolidated dashboard endpoint with extended timeout for large data sets
+      const response = await api.get(`/api/enterprise/${enterprise}/dashboard`, {
+        timeout: 300000 // 5 minutes timeout for enterprise data extraction
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch enterprise vulnerability dashboard data:', error);
+      throw error;
+    }
+  },
 };
 
 // Business Applications API service
 export const businessApplicationsApi = {
   getAll: async (organization: string): Promise<BusinessApplication[]> => {
     try {
-      const response = await api.get(`/business-applications?organization=${organization}`);
+      const response = await api.get(`/api/business-applications?organization=${organization}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch business applications:', error);
@@ -243,7 +307,7 @@ export const businessApplicationsApi = {
 
   getById: async (id: number): Promise<BusinessApplication> => {
     try {
-      const response = await api.get(`/business-applications/${id}`);
+      const response = await api.get(`/api/business-applications/${id}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch business application:', error);
@@ -253,7 +317,7 @@ export const businessApplicationsApi = {
 
   create: async (data: CreateBusinessApplicationRequest): Promise<BusinessApplication> => {
     try {
-      const response = await api.post('/business-applications', data);
+      const response = await api.post('/api/business-applications', data);
       return response.data;
     } catch (error) {
       console.error('Failed to create business application:', error);
@@ -263,7 +327,7 @@ export const businessApplicationsApi = {
 
   update: async (id: number, data: CreateBusinessApplicationRequest): Promise<BusinessApplication> => {
     try {
-      const response = await api.put(`/business-applications/${id}`, data);
+      const response = await api.put(`/api/business-applications/${id}`, data);
       return response.data;
     } catch (error) {
       console.error('Failed to update business application:', error);
@@ -273,7 +337,7 @@ export const businessApplicationsApi = {
 
   delete: async (id: number): Promise<void> => {
     try {
-      await api.delete(`/business-applications/${id}`);
+      await api.delete(`/api/business-applications/${id}`);
     } catch (error) {
       console.error('Failed to delete business application:', error);
       throw error;
@@ -282,7 +346,7 @@ export const businessApplicationsApi = {
 
   getStats: async (organization: string): Promise<BusinessApplicationStats> => {
     try {
-      const response = await api.get(`/business-applications/stats?organization=${organization}`);
+      const response = await api.get(`/api/business-applications/stats?organization=${organization}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch business application stats:', error);
@@ -293,7 +357,7 @@ export const businessApplicationsApi = {
   getVulnerabilityData: async (organization: string): Promise<BusinessApplicationVulnerabilityData[]> => {
     try {
       console.log('Fetching vulnerability data for organization:', organization);
-      const response = await api.get(`/business-applications/vulnerability-data?organization=${organization}`);
+      const response = await api.get(`/api/business-applications/vulnerability-data?organization=${organization}`);
       console.log('Vulnerability data response:', response.data);
       return response.data;
     } catch (error) {
@@ -305,7 +369,7 @@ export const businessApplicationsApi = {
   getVulnerabilityDataDebug: async (organization: string): Promise<BusinessApplicationVulnerabilityData[]> => {
     try {
       console.log('Fetching vulnerability data (debug mode) for organization:', organization);
-      const response = await api.get(`/business-applications/vulnerability-data-debug?organization=${organization}`);
+      const response = await api.get(`/api/business-applications/vulnerability-data-debug?organization=${organization}`);
       console.log('Vulnerability data debug response:', response.data);
       return response.data;
     } catch (error) {
@@ -317,7 +381,7 @@ export const businessApplicationsApi = {
   getVulnerabilityTrend: async (organization: string): Promise<VulnerabilityTrendData[]> => {
     try {
       console.log('Fetching vulnerability trend data for organization:', organization);
-      const response = await api.get(`/business-applications/vulnerability-trend?organization=${organization}`);
+      const response = await api.get(`/api/business-applications/vulnerability-trend?organization=${organization}`);
       console.log('Vulnerability trend data response:', response.data);
       return response.data;
     } catch (error) {

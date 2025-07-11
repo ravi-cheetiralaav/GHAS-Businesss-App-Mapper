@@ -36,6 +36,15 @@ A modern, comprehensive GitHub Advanced Security (GHAS) vulnerability insights a
 - Historical security data tracking
 - Export capabilities for reports and presentations
 
+### 🏢 Enterprise Security Dashboard
+- **NEW**: Consolidated GitHub Enterprise vulnerability view
+- Code scanning alerts monitoring across all enterprise repositories
+- Secret scanning alerts with detailed exposure analysis
+- Dependabot security alerts for dependency vulnerabilities
+- Tabbed interface for organized alert management
+- Real-time summary statistics with visual indicators
+- Direct integration with GitHub Enterprise APIs
+
 ### 🎨 Modern User Interface
 - Responsive Material-UI design
 - Dark/light theme support
