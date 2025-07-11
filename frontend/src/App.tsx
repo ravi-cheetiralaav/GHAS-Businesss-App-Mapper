@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Repositories from './pages/Repositories';
 import BusinessApplications from './pages/BusinessApplications';
 import Analytics from './pages/Analytics';
+import EnterpriseDashboard from './pages/EnterpriseDashboard';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -69,6 +70,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             <Analytics />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/enterprise-dashboard" element={
+        <ProtectedRoute>
+          <Layout>
+            <EnterpriseDashboard />
           </Layout>
         </ProtectedRoute>
       } />

@@ -24,6 +24,7 @@ import {
   Menu as MenuIcon,
   Logout as LogoutIcon,
   GitHub as GitHubIcon,
+  Security as SecurityIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -45,6 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/repositories', label: 'Repositories', icon: <RepositoryIcon /> },
     { path: '/business-applications', label: 'Business Apps', icon: <BusinessIcon /> },
     { path: '/analytics', label: 'Analytics', icon: <AnalyticsIcon /> },
+    { path: '/enterprise-dashboard', label: 'Enterprise Security', icon: <SecurityIcon /> },
   ];
 
   const drawer = (
