@@ -36,7 +36,7 @@ A modern, comprehensive GitHub Advanced Security (GHAS) vulnerability insights a
 - Historical security data tracking
 - Export capabilities for reports and presentations
 
-### 🏢 Enterprise Security Dashboard
+### 🏢 Enterprise Risk Dashboard
 - **NEW**: Consolidated GitHub Enterprise vulnerability view
 - Code scanning alerts monitoring across all enterprise repositories
 - Secret scanning alerts with detailed exposure analysis
@@ -51,6 +51,32 @@ A modern, comprehensive GitHub Advanced Security (GHAS) vulnerability insights a
 - Mobile-friendly interface
 - Intuitive navigation and user experience
 - Real-time backend connectivity status
+
+## 📸 Screenshots
+
+### Login Page
+![Login Page](./assets/Login.png)
+*Secure authentication with GitHub Personal Access Token*
+
+### Landing Page
+![Landing Page](./assets/Landing-Page.png)
+*Clean and intuitive dashboard overview*
+
+### Repositories View
+![Repositories View](./assets/Repositories-View.png)
+*Comprehensive repository management with detailed information, language analysis, and direct GitHub integration*
+
+### Business Applications
+![Business Applications](./assets/Business-Apps.png)
+*Business application management and repository mapping interface*
+
+### Analytics Dashboard
+![Analytics View](./assets/Analytics-View-1.png)
+*Advanced analytics and visualization dashboard for security insights*
+
+### Business Application Risk Heatmap
+![Business App Risk Heatmap](./assets/Business-App-Risk-Heatmap-View.png)
+*Interactive risk assessment heatmap for business applications*
 
 ## 🏗️ Architecture
 

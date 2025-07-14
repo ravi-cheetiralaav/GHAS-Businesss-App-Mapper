@@ -102,7 +102,7 @@ function EnterpriseDashboard() {
                         </Box>
                         <Box>
                             <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                                Enterprise Security Dashboard
+                                Enterprise Risk Dashboard
                             </Typography>
                             <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
                                 Consolidated view of all security vulnerabilities across your enterprise
@@ -294,7 +294,7 @@ function EnterpriseDashboard() {
                         🔧 Implementation Details
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        This Enterprise Security Dashboard integrates with the following GitHub Enterprise APIs:
+                        This Enterprise Risk Dashboard integrates with the following GitHub Enterprise APIs:
                     </Typography>
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={4}>

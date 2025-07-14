@@ -46,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/repositories', label: 'Repositories', icon: <RepositoryIcon /> },
     { path: '/business-applications', label: 'Business Apps', icon: <BusinessIcon /> },
     { path: '/analytics', label: 'Analytics', icon: <AnalyticsIcon /> },
-    { path: '/enterprise-dashboard', label: 'Enterprise Security', icon: <SecurityIcon /> },
+    { path: '/enterprise-dashboard', label: 'Enterprise Risk', icon: <SecurityIcon /> },
   ];
 
   const drawer = (

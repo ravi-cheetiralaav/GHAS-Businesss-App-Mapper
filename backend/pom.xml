@@ -50,6 +50,17 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
         
+        <!-- WebSocket Support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-messaging</artifactId>
+        </dependency>
+        
         <!-- Database: SQLite -->
         <dependency>
             <groupId>org.xerial</groupId>
