@@ -187,10 +187,10 @@ const Repositories: React.FC = () => {
               <RepositoryIcon sx={{ fontSize: 32, color: 'white' }} />
             </Box>
             <Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
                 Repositories
               </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, color: 'white' }}>
                 Organization: {organization}
               </Typography>
             </Box>
@@ -198,7 +198,7 @@ const Repositories: React.FC = () => {
           
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
             <CodeIcon sx={{ mr: 1, fontSize: 20 }} />
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            <Typography variant="body1" sx={{ fontWeight: 500, color: 'white' }}>
               {repositories?.length || 0} repositories with language analysis
             </Typography>
           </Box>

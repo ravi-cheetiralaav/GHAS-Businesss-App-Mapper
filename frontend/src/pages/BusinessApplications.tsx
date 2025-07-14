@@ -271,6 +271,7 @@ const BusinessApplications: React.FC = () => {
                   sx={{ 
                     textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                     mb: 0.5,
+                    color: 'white',
                   }}
                 >
                   Business Applications
@@ -280,6 +281,7 @@ const BusinessApplications: React.FC = () => {
                   sx={{ 
                     opacity: 0.9,
                     textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                    color: 'white',
                   }}
                 >
                   Manage your organization's application portfolio

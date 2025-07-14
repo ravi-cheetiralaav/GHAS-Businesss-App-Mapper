@@ -395,6 +395,7 @@ const Analytics: React.FC = () => {
                   sx={{ 
                     textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                     mb: 1,
+                    color: 'white',
                   }}
                 >
                   Analytics Dashboard
@@ -404,6 +405,7 @@ const Analytics: React.FC = () => {
                   sx={{ 
                     opacity: 0.9,
                     textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                    color: 'white',
                   }}
                 >
                   Vulnerability and security insights for {organization}

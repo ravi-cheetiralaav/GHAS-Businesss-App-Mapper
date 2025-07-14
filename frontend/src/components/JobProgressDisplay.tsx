@@ -4,7 +4,6 @@ import {
   Typography,
   LinearProgress,
   Card,
-  CardContent,
   Chip,
   Grid,
   Paper,
@@ -25,32 +24,62 @@ interface JobProgressDisplayProps {
 
 const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) => {
   const theme = useTheme();
+  
+  // Purple theme color palette
+  const colors = {
+    bg: {
+      primary: theme.palette.background.default,
+      secondary: theme.palette.background.paper,
+    },
+    border: {
+      default: theme.palette.grey[300],
+    },
+    fg: {
+      default: theme.palette.text.primary,
+      muted: theme.palette.text.secondary,
+    },
+    accent: {
+      fg: theme.palette.primary.main,
+    },
+    success: {
+      fg: theme.palette.success.main,
+      bg: theme.palette.success.light,
+    },
+    danger: {
+      fg: theme.palette.error.main,
+      bg: theme.palette.error.light,
+    },
+    warning: {
+      fg: theme.palette.warning.main,
+      bg: theme.palette.warning.light,
+    },
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return <CheckIcon sx={{ color: theme.palette.success.main, fontSize: 20 }} />;
+        return <CheckIcon sx={{ color: colors.success.fg, fontSize: 20 }} />;
       case 'FAILED':
-        return <ErrorIcon sx={{ color: theme.palette.error.main, fontSize: 20 }} />;
+        return <ErrorIcon sx={{ color: colors.danger.fg, fontSize: 20 }} />;
       case 'PROCESSING':
-        return <ProcessingIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} className="rotating" />;
+        return <ProcessingIcon sx={{ color: colors.accent.fg, fontSize: 20 }} className="rotating" />;
       case 'PENDING':
       default:
-        return <PendingIcon sx={{ color: theme.palette.warning.main, fontSize: 20 }} />;
+        return <PendingIcon sx={{ color: colors.warning.fg, fontSize: 20 }} />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return theme.palette.success.main;
+        return colors.success.fg;
       case 'FAILED':
-        return theme.palette.error.main;
+        return colors.danger.fg;
       case 'PROCESSING':
-        return theme.palette.primary.main;
+        return colors.accent.fg;
       case 'PENDING':
       default:
-        return theme.palette.warning.main;
+        return colors.warning.fg;
     }
   };
 
@@ -70,27 +99,20 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
             sx={{
               fontSize: '0.75rem',
               height: 24,
-              backgroundColor: `${getStatusColor(task.status)}15`,
+              bgcolor: `${getStatusColor(task.status)}15`,
               color: getStatusColor(task.status),
-              '& .MuiChip-icon': {
-                fontSize: 16,
-              }
+              border: `1px solid ${getStatusColor(task.status)}40`,
             }}
           />
         </Box>
         {task.message && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+          <Typography variant="caption" sx={{ color: colors.fg.muted, mt: 0.5 }}>
             {task.message}
           </Typography>
         )}
         {task.count !== undefined && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            Found: {task.count} alerts
-          </Typography>
-        )}
-        {task.error && (
-          <Typography variant="caption" color="error" sx={{ display: 'block' }}>
-            Error: {task.error}
+          <Typography variant="body2" sx={{ color: colors.fg.default, mt: 0.5 }}>
+            Found: {task.count} items
           </Typography>
         )}
       </Box>
@@ -99,47 +121,64 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
 
   return (
     <Fade in={true}>
-      <Card 
-        elevation={4}
+      <Paper 
+        elevation={0}
         sx={{
           mb: 3,
-          borderRadius: 3,
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(103, 126, 234, 0.1)',
-          boxShadow: '0 8px 32px rgba(103, 126, 234, 0.1)',
+          borderRadius: '8px',
+          border: `1px solid ${colors.border.default}`,
+          bgcolor: colors.bg.secondary,
+          boxShadow: '0 1px 3px rgba(27,31,36,0.12), 0 8px 24px rgba(27,31,36,0.12)',
         }}
       >
-        <CardContent sx={{ p: 3 }}>
+        <Box sx={{ 
+          bgcolor: colors.bg.primary, 
+          p: 3, 
+          borderBottom: `1px solid ${colors.border.default}`,
+          borderTopLeftRadius: '8px',
+          borderTopRightRadius: '8px'
+        }}>
           {/* Header */}
           <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ 
+              fontWeight: 600, 
+              color: colors.fg.default,
+              fontSize: '1.125rem'
+            }}>
               Enterprise Scan Progress
             </Typography>
             <Chip
               icon={getStatusIcon(jobProgress.status)}
               label={jobProgress.status}
               sx={{
-                fontSize: '0.85rem',
+                fontSize: '0.75rem',
                 fontWeight: 600,
-                backgroundColor: `${getStatusColor(jobProgress.status)}15`,
+                bgcolor: `${getStatusColor(jobProgress.status)}15`,
                 color: getStatusColor(jobProgress.status),
+                border: `1px solid ${getStatusColor(jobProgress.status)}40`,
               }}
             />
           </Box>
 
           {/* Current Task */}
-          <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+          <Typography variant="body1" sx={{ 
+            mb: 2, 
+            fontWeight: 500,
+            color: colors.fg.default
+          }}>
             {jobProgress.currentTask || 'Processing...'}
           </Typography>
 
           {/* Progress Bar */}
           <Box sx={{ mb: 3 }}>
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: colors.fg.muted }}>
                 Overall Progress
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ 
+                fontWeight: 600,
+                color: colors.fg.default
+              }}>
                 {jobProgress.progress}%
               </Typography>
             </Box>
@@ -148,26 +187,29 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
               value={jobProgress.progress}
               sx={{
                 height: 8,
-                borderRadius: 4,
-                backgroundColor: 'rgba(103, 126, 234, 0.1)',
+                borderRadius: '4px',
+                bgcolor: colors.bg.primary,
                 '& .MuiLinearProgress-bar': {
-                  borderRadius: 4,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                },
+                  bgcolor: colors.accent.fg,
+                  borderRadius: '4px'
+                }
               }}
             />
           </Box>
+        </Box>
 
-          {/* Task Details */}
+        {/* Task Details */}
+        <Box sx={{ p: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
               <Paper 
-                elevation={1} 
-                sx={{ 
-                  p: 2, 
-                  borderRadius: 2,
-                  background: 'rgba(103, 126, 234, 0.03)',
-                  border: '1px solid rgba(103, 126, 234, 0.1)',
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: '6px',
+                  border: `1px solid ${colors.border.default}`,
+                  bgcolor: colors.bg.primary,
+                  textAlign: 'center'
                 }}
               >
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
@@ -179,12 +221,13 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
             
             <Grid item xs={12} md={4}>
               <Paper 
-                elevation={1} 
+                elevation={0}
                 sx={{ 
                   p: 2, 
-                  borderRadius: 2,
-                  background: 'rgba(103, 126, 234, 0.03)',
-                  border: '1px solid rgba(103, 126, 234, 0.1)',
+                  borderRadius: '6px',
+                  border: `1px solid ${colors.border.default}`,
+                  bgcolor: colors.bg.primary,
+                  textAlign: 'center'
                 }}
               >
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
@@ -196,12 +239,13 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
             
             <Grid item xs={12} md={4}>
               <Paper 
-                elevation={1} 
+                elevation={0}
                 sx={{ 
                   p: 2, 
-                  borderRadius: 2,
-                  background: 'rgba(103, 126, 234, 0.03)',
-                  border: '1px solid rgba(103, 126, 234, 0.1)',
+                  borderRadius: '6px',
+                  border: `1px solid ${colors.border.default}`,
+                  bgcolor: colors.bg.primary,
+                  textAlign: 'center'
                 }}
               >
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
@@ -219,8 +263,8 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
                 mt: 2, 
                 p: 2, 
                 borderRadius: 2,
-                backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                border: '1px solid rgba(244, 67, 54, 0.2)',
+                backgroundColor: colors.danger.bg,
+                border: `1px solid ${colors.danger.fg}40`,
               }}
             >
               <Typography variant="body2" color="error" sx={{ fontWeight: 600 }}>
@@ -231,7 +275,7 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
 
           {/* Timing Information */}
           {(jobProgress.createdAt || jobProgress.estimatedCompletion) && (
-            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(103, 126, 234, 0.1)' }}>
+            <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${colors.border.default}` }}>
               <Grid container spacing={2}>
                 {jobProgress.createdAt && (
                   <Grid item xs={6}>
@@ -250,8 +294,8 @@ const JobProgressDisplay: React.FC<JobProgressDisplayProps> = ({ jobProgress }) 
               </Grid>
             </Box>
           )}
-        </CardContent>
-      </Card>
+        </Box>
+      </Paper>
     </Fade>
   );
 };

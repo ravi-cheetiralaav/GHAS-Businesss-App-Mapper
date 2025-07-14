@@ -62,10 +62,11 @@ buildNumber.properties
 /backend/startup.log
 
 # Database files
-*.db
+*.dbss
 *.sqlite
 *.sqlite3
 github_org_manager.db
+backend/github_org_manager.db
 
 # Temporary files
 *.tmp

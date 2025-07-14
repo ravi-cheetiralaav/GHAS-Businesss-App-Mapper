@@ -17,7 +17,17 @@ import {
   Container,
   Fade,
   IconButton,
-  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
 } from '@mui/material';
 import {
   Security as SecurityIcon,
@@ -28,6 +38,9 @@ import {
   Business as EnterpriseIcon,
   Wifi as ConnectedIcon,
   WifiOff as DisconnectedIcon,
+  AccountTree as OrganizationIcon,
+  TrendingUp as RiskIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useEnterpriseAsyncJob } from '../hooks/useEnterpriseAsyncJob';
@@ -42,11 +55,28 @@ interface VulnerabilityStats {
   error: number;
 }
 
+interface OrganizationRiskSummary {
+  organizationName: string;
+  codeScanning: VulnerabilityStats;
+  secretScanning: VulnerabilityStats;
+  dependabot: VulnerabilityStats;
+  totalRepositories: number;
+  totalAlerts: number;
+  riskScore: number;
+  lastUpdated: string;
+}
+
 interface EnterpriseData {
   name: string;
   codeScanning: VulnerabilityStats;
   secretScanning: VulnerabilityStats;
   dependabot: VulnerabilityStats;
+  organizationBreakdown?: OrganizationRiskSummary[];
+  organizationSummary?: {
+    totalOrganizations: number;
+    totalRepositories: number;
+    totalAlerts: number;
+  };
 }
 
 const EnterpriseDashboard: React.FC = () => {
@@ -56,6 +86,8 @@ const EnterpriseDashboard: React.FC = () => {
   const [searchedEnterprise, setSearchedEnterprise] = useState('');
   const [enterpriseData, setEnterpriseData] = useState<EnterpriseData | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
+  const [showAllOrganizations, setShowAllOrganizations] = useState<boolean>(false);
+  const [showOrganizationTable, setShowOrganizationTable] = useState<boolean>(false);
   
   // Use the new async job hook
   const {
@@ -64,306 +96,269 @@ const EnterpriseDashboard: React.FC = () => {
     isLoading,
     error,
     startEnterpriseJob,
-    reset,
   } = useEnterpriseAsyncJob();
 
   const handleSearch = async () => {
-    console.log('🔍 Starting enterprise search...');
-    console.log('Enterprise name:', enterpriseName.trim());
+    if (!enterpriseName.trim() || !token) return;
     
-    if (!enterpriseName.trim()) {
-      console.warn('❌ No enterprise name provided');
-      return;
-    }
-
-    if (!token) {
-      console.warn('❌ No authentication token found');
-      return;
-    }
-
-    console.log('✅ Starting async enterprise job...');
-    
-    // Clear previous enterprise data but keep error state
     setEnterpriseData(null);
     setSearchedEnterprise(enterpriseName.trim());
+    setShowAllOrganizations(false);
+    setShowOrganizationTable(false);
     
     try {
-      // Start the async job
       const jobResponse = await startEnterpriseJob(enterpriseName.trim(), token);
-      
-      if (jobResponse) {
-        console.log('🎯 Job response received:', jobResponse);
-        
-        // If we have cached results, process them immediately
-        if (jobResponse.useExistingResults && jobResponse.existingResults) {
-          console.log('📋 Processing cached results...');
-          processEnterpriseResults(jobResponse.existingResults);
-        }
+      if (jobResponse?.useExistingResults && jobResponse.existingResults) {
+        processEnterpriseResults(jobResponse.existingResults);
       }
     } catch (error) {
-      console.error('❌ Error starting enterprise job:', error);
+      console.error('Error starting enterprise job:', error);
     }
   };
 
   const processEnterpriseResults = (results: any) => {
-    console.log('📊 Processing enterprise results:', results);
-    console.log('📊 Code scanning data:', results?.codeScanning);
-    console.log('📊 Secret scanning data:', results?.secretScanning);
-    console.log('📊 Dependabot data:', results?.dependabot);
-    
-    // Convert the results to the expected format
-    // This is a simplified conversion - you may need to adjust based on the actual structure
     const processedData: EnterpriseData = {
       name: searchedEnterprise,
-      codeScanning: results?.codeScanning || {
-        total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0
-      },
-      secretScanning: results?.secretScanning || {
-        total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0
-      },
-      dependabot: results?.dependabot || {
-        total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0
-      }
+      codeScanning: results?.codeScanning || { total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0 },
+      secretScanning: results?.secretScanning || { total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0 },
+      dependabot: results?.dependabot || { total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0 },
+      organizationBreakdown: results?.organizationBreakdown || [],
+      organizationSummary: results?.organizationSummary || { totalOrganizations: 0, totalRepositories: 0, totalAlerts: 0 }
     };
-    
-    console.log('📊 Processed enterprise data:', processedData);
     setEnterpriseData(processedData);
   };
 
-  // Watch for job completion
   React.useEffect(() => {
     if (jobProgress?.status === 'COMPLETED' && jobProgress.partialResults) {
       processEnterpriseResults(jobProgress.partialResults);
     }
   }, [jobProgress, searchedEnterprise]);
 
-  const renderVulnerabilityStats = (stats: VulnerabilityStats, type: string, icon: React.ReactNode) => (
-    <Fade in={true}>
-      <Paper 
-        elevation={4}
-        sx={{ 
-          height: '100%',
-          borderRadius: 3,
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(103, 126, 234, 0.1)',
-          boxShadow: '0 8px 32px rgba(103, 126, 234, 0.1)',
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box display="flex" alignItems="center" mb={3}>
+  const renderVulnerabilityStats = (stats: VulnerabilityStats, type: string) => (
+    <Box sx={{ p: 3 }}>
+      <Box sx={{
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        minWidth: 80, 
+        padding: '8px 20px', 
+        height: 80, 
+        borderRadius: '40px',
+        background: stats.total > 0 ? 
+          'linear-gradient(135deg, #FFA500 0%, #FF8C00 100%)' : 
+          'linear-gradient(135deg, #90EE90 0%, #7BCF7B 100%)',
+        color: 'white',
+        fontWeight: 'bold', 
+        fontSize: '2rem',
+        boxShadow: stats.total > 0 ? 
+          '0 4px 15px rgba(255, 165, 0, 0.4)' : 
+          '0 4px 15px rgba(144, 238, 144, 0.4)',
+        mb: 2,
+      }}>
+        {stats.total.toLocaleString()}
+      </Box>
+      <Typography variant="h6" sx={{ 
+        fontWeight: 'bold', 
+        mb: 3,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundClip: 'text',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+      }}>
+        Total {type} vulnerabilities found
+      </Typography>
+      
+      <Grid container spacing={2}>
+        {stats.critical > 0 && (
+          <Grid item xs={6} sm={3}>
             <Box sx={{ 
-              p: 1.5, 
-              borderRadius: '50%', 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              mr: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              p: 2, 
+              textAlign: 'center', 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #8B0000 0%, #B22222 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(139, 0, 0, 0.4)',
             }}>
-              {React.cloneElement(icon as React.ReactElement, { 
-                sx: { fontSize: 24, color: 'white' } 
-              })}
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {stats.critical}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Critical
+              </Typography>
             </Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 'bold',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              {type} Vulnerabilities
-            </Typography>
-          </Box>
-          <Grid container spacing={2}>
-            {/* Total Card */}
-            <Grid item xs={6} sm={2.4}>
-              <Paper 
-                elevation={2} 
-                sx={{ 
-                  p: 2.5, 
-                  textAlign: 'center', 
-                  borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(103, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-                  border: '1px solid rgba(103, 126, 234, 0.1)',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(103, 126, 234, 0.15)',
-                    background: 'linear-gradient(135deg, rgba(103, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-                  }
-                }}
-              >
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    fontWeight: 'bold', 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    mb: 1 
-                  }}
-                >
-                  {stats.total}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Total
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Critical Card */}
-            <Grid item xs={6} sm={2.4}>
-              <Paper 
-                elevation={2} 
-                sx={{ 
-                  p: 2.5, 
-                  textAlign: 'center', 
-                  borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%)',
-                  border: '1px solid rgba(211, 47, 47, 0.3)',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(211, 47, 47, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.15) 0%, rgba(211, 47, 47, 0.15) 100%)',
-                  }
-                }}
-              >
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#d32f2f', mb: 1 }}>
-                  {stats.critical}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Critical
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* High Card */}
-            <Grid item xs={6} sm={2.4}>
-              <Paper 
-                elevation={2} 
-                sx={{ 
-                  p: 2.5, 
-                  textAlign: 'center', 
-                  borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(245, 124, 0, 0.1) 0%, rgba(245, 124, 0, 0.1) 100%)',
-                  border: '1px solid rgba(245, 124, 0, 0.3)',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(245, 124, 0, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(245, 124, 0, 0.15) 0%, rgba(245, 124, 0, 0.15) 100%)',
-                  }
-                }}
-              >
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f57c00', mb: 1 }}>
-                  {stats.high}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  High
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Medium Card */}
-            <Grid item xs={6} sm={2.4}>
-              <Paper 
-                elevation={2} 
-                sx={{ 
-                  p: 2.5, 
-                  textAlign: 'center', 
-                  borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(251, 192, 45, 0.1) 0%, rgba(251, 192, 45, 0.1) 100%)',
-                  border: '1px solid rgba(251, 192, 45, 0.3)',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(251, 192, 45, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(251, 192, 45, 0.15) 0%, rgba(251, 192, 45, 0.15) 100%)',
-                  }
-                }}
-              >
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#fbc02d', mb: 1 }}>
-                  {stats.medium}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Medium
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Low Card */}
-            <Grid item xs={6} sm={2.4}>
-              <Paper 
-                elevation={2} 
-                sx={{ 
-                  p: 2.5, 
-                  textAlign: 'center', 
-                  borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(56, 142, 60, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%)',
-                  border: '1px solid rgba(56, 142, 60, 0.3)',
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(56, 142, 60, 0.25)',
-                    background: 'linear-gradient(135deg, rgba(56, 142, 60, 0.15) 0%, rgba(56, 142, 60, 0.15) 100%)',
-                  }
-                }}
-              >
-                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#388e3c', mb: 1 }}>
-                  {stats.low}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  Low
-                </Typography>
-              </Paper>
-            </Grid>
           </Grid>
-          
-          {/* Second Row for Error severity */}
-          {stats.error > 0 && (
-            <Grid container spacing={2} sx={{ mt: 2 }}>
-              <Grid item xs={12} sm={12}>
-                <Paper 
-                  elevation={2} 
-                  sx={{ 
-                    p: 2.5, 
-                    textAlign: 'center', 
-                    borderRadius: 3,
-                    background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(123, 31, 162, 0.1) 100%)',
-                    border: '1px solid rgba(156, 39, 176, 0.2)',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': { 
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 40px rgba(156, 39, 176, 0.2)',
-                      background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.15) 0%, rgba(123, 31, 162, 0.15) 100%)',
-                    }
-                  }}
-                >
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, mb: 1 }}>
-                    {stats.error}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Error (Unable to determine severity)
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-          )}
-        </CardContent>
-      </Paper>
-    </Fade>
+        )}
+        {stats.high > 0 && (
+          <Grid item xs={6} sm={3}>
+            <Box sx={{ 
+              p: 2, 
+              textAlign: 'center', 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #FF4444 0%, #FF6666 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(255, 68, 68, 0.4)',
+            }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {stats.high}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                High
+              </Typography>
+            </Box>
+          </Grid>
+        )}
+        {stats.medium > 0 && (
+          <Grid item xs={6} sm={3}>
+            <Box sx={{ 
+              p: 2, 
+              textAlign: 'center', 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #FFA500 0%, #FFB733 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(255, 165, 0, 0.4)',
+            }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {stats.medium}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Medium
+              </Typography>
+            </Box>
+          </Grid>
+        )}
+        {stats.low > 0 && (
+          <Grid item xs={6} sm={3}>
+            <Box sx={{ 
+              p: 2, 
+              textAlign: 'center', 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #90EE90 0%, #A8F3A8 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(144, 238, 144, 0.4)',
+            }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {stats.low}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Low
+              </Typography>
+            </Box>
+          </Grid>
+        )}
+      </Grid>
+    </Box>
+  );
+
+  const renderOrganizationTable = (organizations: OrganizationRiskSummary[]) => (
+    <TableContainer component={Paper}>
+      <Table sx={{ minWidth: 650 }}>
+        <TableHead>
+          <TableRow sx={{ bgcolor: 'primary.main' }}>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
+              Organization
+            </TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Risk Score
+            </TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Repositories
+            </TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Total Alerts
+            </TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Code Scanning
+            </TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Secret Scanning
+            </TableCell>
+            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Dependabot
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {organizations
+            .sort((a, b) => b.riskScore - a.riskScore)
+            .map((org) => (
+              <TableRow 
+                key={org.organizationName}
+                sx={{ 
+                  '&:hover': { bgcolor: 'action.hover' },
+                  borderLeft: `4px solid ${
+                    org.riskScore > 50 ? theme.palette.error.main :
+                    org.riskScore > 25 ? theme.palette.warning.main :
+                    theme.palette.success.main
+                  }`
+                }}
+              >
+                <TableCell sx={{ fontWeight: 'bold' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <OrganizationIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    {org.organizationName}
+                  </Box>
+                </TableCell>
+                <TableCell align="center">
+                  <Chip 
+                    label={org.riskScore.toFixed(1)}
+                    size="small"
+                    color={org.riskScore > 50 ? 'error' : org.riskScore > 25 ? 'warning' : 'success'}
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                  {org.totalRepositories}
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                  {org.totalAlerts}
+                </TableCell>
+                <TableCell align="center">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      {org.codeScanning.total}
+                    </Typography>
+                    {(org.codeScanning.critical + org.codeScanning.high) > 0 && (
+                      <Typography variant="caption" color="error">
+                        {org.codeScanning.critical + org.codeScanning.high} critical/high
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell align="center">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      {org.secretScanning.total}
+                    </Typography>
+                    {(org.secretScanning.critical + org.secretScanning.high) > 0 && (
+                      <Typography variant="caption" color="error">
+                        {org.secretScanning.critical + org.secretScanning.high} critical/high
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell align="center">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                      {org.dependabot.total}
+                    </Typography>
+                    {(org.dependabot.critical + org.dependabot.high) > 0 && (
+                      <Typography variant="caption" color="error">
+                        {org.dependabot.critical + org.dependabot.high} critical/high
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 
   return (
-    <Fade in={true} timeout={600}>
+    <Fade in={true} timeout={800}>
       <Box>
-        {/* Header Section - Matching Analytics page style */}
+        {/* Enhanced Header Section with Purple Gradient */}
         <Paper
           elevation={8}
           sx={{
@@ -407,6 +402,7 @@ const EnterpriseDashboard: React.FC = () => {
                   sx={{ 
                     textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                     mb: 1,
+                    color: 'white',
                   }}
                 >
                   Enterprise Risk Dashboard
@@ -416,6 +412,7 @@ const EnterpriseDashboard: React.FC = () => {
                   sx={{ 
                     opacity: 0.9,
                     textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                    color: 'white',
                   }}
                 >
                   Comprehensive risk assessment across your enterprise
@@ -429,32 +426,37 @@ const EnterpriseDashboard: React.FC = () => {
           <Box sx={{ py: 2 }}>
             {/* Enterprise Search Section */}
             <Fade in={true} timeout={800} style={{ transitionDelay: '200ms' }}>
-              <Paper 
-                elevation={4}
+              <Card 
+                elevation={8}
                 sx={{
                   mb: 4,
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                   borderRadius: 3,
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(103, 126, 234, 0.1)',
-                  boxShadow: '0 8px 32px rgba(103, 126, 234, 0.1)',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                  },
                 }}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Box sx={{ 
-                      p: 1.5, 
-                      borderRadius: '50%', 
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      mr: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <EnterpriseIcon sx={{ fontSize: 24, color: 'white' }} />
-                    </Box>
+                    <EnterpriseIcon 
+                      sx={{ 
+                        fontSize: 32, 
+                        mr: 2, 
+                        color: theme.palette.primary.main,
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                      }} 
+                    />
                     <Typography 
-                      variant="h5" 
+                      variant="h6" 
                       sx={{ 
                         fontWeight: 'bold',
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -463,74 +465,72 @@ const EnterpriseDashboard: React.FC = () => {
                         WebkitTextFillColor: 'transparent',
                       }}
                     >
-                      Search Enterprise
+                      Enterprise Analysis
                     </Typography>
                   </Box>
-                  <Box sx={{ mb: 2 }}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={8}>
-                        <TextField
-                          fullWidth
-                          value={enterpriseName}
-                          onChange={(e) => setEnterpriseName(e.target.value)}
-                          placeholder="Enter GitHub Enterprise name"
-                          variant="outlined"
-                          disabled={isLoading}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: 2,
-                              background: 'rgba(103, 126, 234, 0.02)',
-                              '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#667eea',
-                              },
-                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#667eea',
-                                borderWidth: 2,
-                              },
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={8}>
+                      <TextField
+                        label="Enterprise Name"
+                        variant="outlined"
+                        fullWidth
+                        value={enterpriseName}
+                        onChange={(e) => setEnterpriseName(e.target.value)}
+                        placeholder="Enter GitHub Enterprise name..."
+                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                        disabled={isLoading}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: '#667eea',
                             },
-                          }}
-                          InputProps={{
-                            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <Box display="flex" gap={1}>
-                          <Button
-                            onClick={handleSearch}
-                            disabled={isLoading || !enterpriseName.trim()}
-                            variant="contained"
-                            size="large"
-                            fullWidth
-                            startIcon={isLoading ? <CircularProgress size={20} /> : <SearchIcon />}
-                            sx={{
-                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                              borderRadius: 2,
-                              fontWeight: 'bold',
-                              py: 1.5,
-                              '&:hover': {
-                                background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 8px 25px rgba(103, 126, 234, 0.3)',
-                              },
-                              transition: 'all 0.3s ease',
-                              '&:disabled': {
-                                background: 'rgba(103, 126, 234, 0.3)',
-                              },
-                            }}
-                          >
-                            {isLoading ? 'Starting Analysis...' : 'Analyze Enterprise'}
-                          </Button>
-                        </Box>
-                      </Grid>
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              borderColor: '#667eea',
+                              borderWidth: 2,
+                            },
+                          },
+                        }}
+                        InputProps={{
+                          startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                        }}
+                      />
                     </Grid>
-                  </Box>
+                    <Grid item xs={12} md={4}>
+                      <Button
+                        onClick={handleSearch}
+                        disabled={isLoading || !enterpriseName.trim()}
+                        variant="contained"
+                        size="large"
+                        fullWidth
+                        startIcon={isLoading ? <CircularProgress size={20} /> : <SearchIcon />}
+                        sx={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          borderRadius: 2,
+                          fontWeight: 'bold',
+                          py: 1.5,
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 6px 25px rgba(103, 126, 234, 0.4)',
+                          },
+                          '&:disabled': {
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.08) 100%)',
+                            color: 'rgba(0, 0, 0, 0.26)',
+                          }
+                        }}
+                      >
+                        {isLoading ? 'Analyzing...' : 'Analyze Enterprise'}
+                      </Button>
+                    </Grid>
+                  </Grid>
+
                   {error && (
-                    <Fade in={true}>
+                    <Fade in timeout={300}>
                       <Alert 
-                        severity={error.startsWith('✅') ? 'success' : 'error'} 
+                        severity={error.startsWith('✅') ? 'success' : 'error'}
                         sx={{ 
-                          mt: 2,
+                          mt: 3,
                           borderRadius: 2,
                           ...(error.startsWith('✅') ? {
                             background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
@@ -546,7 +546,7 @@ const EnterpriseDashboard: React.FC = () => {
                     </Fade>
                   )}
                 </CardContent>
-              </Paper>
+              </Card>
             </Fade>
 
             {/* Job Progress Display */}
@@ -554,61 +554,85 @@ const EnterpriseDashboard: React.FC = () => {
               <JobProgressDisplay jobProgress={jobProgress} />
             )}
 
-            {/* Connection Status */}
-            {jobProgress && (
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                {isConnected ? (
-                  <>
-                    <ConnectedIcon sx={{ color: 'success.main', fontSize: 20 }} />
-                    <Typography variant="caption" color="success.main">
-                      Real-time updates connected
-                    </Typography>
-                  </>
-                ) : (
-                  <>
-                    <DisconnectedIcon sx={{ color: 'warning.main', fontSize: 20 }} />
-                    <Typography variant="caption" color="warning.main">
-                      Connecting to real-time updates...
-                    </Typography>
-                  </>
-                )}
-              </Box>
-            )}
-
             {/* Enterprise Data Section */}
             {enterpriseData && (
               <Fade in={true} timeout={1000} style={{ transitionDelay: '400ms' }}>
                 <Box>
-                  <Paper
-                    elevation={4}
+                  <Card
+                    elevation={8}
                     sx={{
                       mb: 4,
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                       borderRadius: 3,
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(103, 126, 234, 0.1)',
-                      boxShadow: '0 8px 32px rgba(103, 126, 234, 0.1)',
-                      p: 3,
+                      overflow: 'hidden',
+                      position: 'relative',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 3,
+                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                        zIndex: 1,
+                      },
                     }}
                   >
-                    <Box sx={{ mb: 3 }}>
-                      <Typography 
-                        variant="h4" 
-                        sx={{ 
-                          fontWeight: 'bold', 
-                          mb: 1,
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                        }}
-                      >
-                        Security Overview: {searchedEnterprise}
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        Consolidated vulnerability data from all repositories
-                      </Typography>
+                    {/* Purple Gradient Header Section */}
+                    <Box 
+                      sx={{ 
+                        p: 3,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        position: 'relative',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          left: 0,
+                          background: 'rgba(255,255,255,0.1)',
+                          backdropFilter: 'blur(10px)',
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                        <SecurityIcon 
+                          sx={{ 
+                            fontSize: 32, 
+                            mr: 2,
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))',
+                          }} 
+                        />
+                        <Box>
+                          <Typography 
+                            variant="h5" 
+                            sx={{ 
+                              fontWeight: 'bold', 
+                              mb: 0.5,
+                              color: 'white',
+                              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            }}
+                          >
+                            Security Overview: {searchedEnterprise}
+                          </Typography>
+                          <Typography 
+                            variant="body1" 
+                            sx={{ 
+                              color: 'white',
+                              opacity: 0.9,
+                              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                            }}
+                          >
+                            Consolidated vulnerability data from all repositories
+                          </Typography>
+                        </Box>
+                      </Box>
                     </Box>
+
+                    <CardContent sx={{ p: 3, position: 'relative', zIndex: 2 }}>
+                      {/* Remove the old header content since it's now in the purple section above */}
 
                     {/* Tab Navigation */}
                     <Paper
@@ -649,151 +673,557 @@ const EnterpriseDashboard: React.FC = () => {
                             },
                           }}
                         >
-                    <Tab 
-                      icon={<CodeIcon />}
-                      label={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <span className="tab-text">Code Scanning</span>
-                          <Chip 
-                            label={enterpriseData.codeScanning.total} 
-                            size="small" 
+                          <Tab 
+                            icon={<CodeIcon />}
+                            label={
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <span className="tab-text">Code Scanning</span>
+                                <Chip 
+                                  label={enterpriseData.codeScanning.total} 
+                                  size="small" 
+                                  sx={{
+                                    backgroundColor: enterpriseData.codeScanning.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
+                                    '& .MuiChip-label': {
+                                      color: enterpriseData.codeScanning.total > 0 ? 'white !important' : '#666 !important',
+                                      fontWeight: 'bold !important',
+                                      WebkitTextFillColor: enterpriseData.codeScanning.total > 0 ? 'white !important' : '#666 !important',
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            }
+                            iconPosition="start"
+                          />
+                          <Tab 
+                            icon={<SecretIcon />}
+                            label={
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <span className="tab-text">Secret Scanning</span>
+                                <Chip 
+                                  label={enterpriseData.secretScanning.total} 
+                                  size="small" 
+                                  sx={{
+                                    backgroundColor: enterpriseData.secretScanning.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
+                                    '& .MuiChip-label': {
+                                      color: enterpriseData.secretScanning.total > 0 ? 'white !important' : '#666 !important',
+                                      fontWeight: 'bold !important',
+                                      WebkitTextFillColor: enterpriseData.secretScanning.total > 0 ? 'white !important' : '#666 !important',
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            }
+                            iconPosition="start"
+                          />
+                          <Tab 
+                            icon={<DependabotIcon />}
+                            label={
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <span className="tab-text">Dependabot</span>
+                                <Chip 
+                                  label={enterpriseData.dependabot.total} 
+                                  size="small" 
+                                  sx={{
+                                    backgroundColor: enterpriseData.dependabot.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
+                                    '& .MuiChip-label': {
+                                      color: enterpriseData.dependabot.total > 0 ? 'white !important' : '#666 !important',
+                                      fontWeight: 'bold !important',
+                                      WebkitTextFillColor: enterpriseData.dependabot.total > 0 ? 'white !important' : '#666 !important',
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            }
+                            iconPosition="start"
+                          />
+                        </Tabs>
+                      </Box>
+
+                      {/* Tab Content */}
+                      <CardContent sx={{ p: 3 }}>
+                        {activeTab === 0 && renderVulnerabilityStats(
+                          enterpriseData.codeScanning, 
+                          'Code Scanning'
+                        )}
+                        {activeTab === 1 && renderVulnerabilityStats(
+                          enterpriseData.secretScanning, 
+                          'Secret Scanning'
+                        )}
+                        {activeTab === 2 && renderVulnerabilityStats(
+                          enterpriseData.dependabot, 
+                          'Dependabot'
+                        )}
+                      </CardContent>
+                    </Paper>
+
+                    {/* Organization Breakdown */}
+                    {enterpriseData.organizationBreakdown && enterpriseData.organizationBreakdown.length > 0 && (
+                <Card
+                  elevation={8}
+                  sx={{
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                    },
+                  }}
+                >
+                  <Box sx={{ 
+                    p: 3, 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    position: 'relative',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 0,
+                      background: 'rgba(255,255,255,0.1)',
+                      backdropFilter: 'blur(10px)',
+                    },
+                  }}>
+                    <Box sx={{ position: 'relative', zIndex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <OrganizationIcon 
+                          sx={{ 
+                            fontSize: 32, 
+                            mr: 2,
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))',
+                          }} 
+                        />
+                        <Typography variant="h5" sx={{ 
+                          fontWeight: 'bold', 
+                          color: 'white',
+                          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        }}>
+                          Organization Risk Breakdown
+                        </Typography>
+                      </Box>
+                      <Typography variant="body1" sx={{ 
+                        color: 'white',
+                        opacity: 0.9,
+                        textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                      }}>
+                        Risk assessment across {enterpriseData.organizationSummary?.totalOrganizations || 0} organizations
+                        • {enterpriseData.organizationSummary?.totalRepositories || 0} repositories
+                        • {enterpriseData.organizationSummary?.totalAlerts || 0} total alerts
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ p: 3 }}>
+                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 'bold',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}>
+                        Organizations ({showAllOrganizations ? enterpriseData.organizationBreakdown.length : Math.min(6, enterpriseData.organizationBreakdown.length)} of {enterpriseData.organizationBreakdown.length})
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => setShowOrganizationTable(true)}
+                        sx={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          borderRadius: 2,
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 15px rgba(103, 126, 234, 0.4)',
+                          },
+                        }}
+                      >
+                        View Table
+                      </Button>
+                    </Box>
+                    
+                    <Grid container spacing={3}>
+                      {enterpriseData.organizationBreakdown
+                        .sort((a, b) => b.riskScore - a.riskScore)
+                        .slice(0, showAllOrganizations ? undefined : 6)
+                        .map((org) => {
+                          // Calculate risk level and colors
+                          const isHighRisk = org.riskScore > 50;
+                          const isMediumRisk = org.riskScore > 25 && org.riskScore <= 50;
+                          const isLowRisk = org.riskScore <= 25;
+                          
+                          const riskColors = {
+                            high: {
+                              gradient: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(229, 57, 53, 0.15) 100%)',
+                              border: '#f44336',
+                              accent: '#d32f2f',
+                              chipBg: '#ffebee'
+                            },
+                            medium: {
+                              gradient: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(245, 124, 0, 0.15) 100%)',
+                              border: '#ff9800',
+                              accent: '#f57c00',
+                              chipBg: '#fff3e0'
+                            },
+                            low: {
+                              gradient: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.15) 100%)',
+                              border: '#4caf50',
+                              accent: '#388e3c',
+                              chipBg: '#e8f5e8'
+                            }
+                          };
+                          
+                          const currentRiskColors = isHighRisk ? riskColors.high : 
+                                                  isMediumRisk ? riskColors.medium : 
+                                                  riskColors.low;
+                          
+                          return (
+                          <Grid item xs={12} md={6} lg={4} key={org.organizationName}>
+                            <Card sx={{ 
+                              height: '100%',
+                              borderRadius: 3,
+                              background: currentRiskColors.gradient,
+                              border: `2px solid ${currentRiskColors.border}`,
+                              position: 'relative',
+                              overflow: 'hidden',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: `0 8px 25px ${currentRiskColors.border}40`,
+                                border: `2px solid ${currentRiskColors.accent}`,
+                              },
+                              '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: '4px',
+                                background: `linear-gradient(90deg, ${currentRiskColors.border} 0%, ${currentRiskColors.accent} 100%)`,
+                              }
+                            }}>
+                              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                  <Typography variant="h6" sx={{ 
+                                    fontWeight: 'bold',
+                                    color: currentRiskColors.accent,
+                                  }}>
+                                    {org.organizationName}
+                                  </Typography>
+                                  <Chip 
+                                    label={`Risk: ${org.riskScore.toFixed(1)}`}
+                                    size="small"
+                                    sx={{
+                                      backgroundColor: currentRiskColors.chipBg,
+                                      color: currentRiskColors.accent,
+                                      fontWeight: 'bold',
+                                      border: `1px solid ${currentRiskColors.border}`,
+                                    }}
+                                  />
+                                </Box>
+                                
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                  {org.totalRepositories} repositories • {org.totalAlerts} alerts
+                                </Typography>
+                                
+                                <Grid container spacing={1} sx={{ mb: 2 }}>
+                                  <Grid item xs={4}>
+                                    <Box sx={{ 
+                                      textAlign: 'center',
+                                      p: 1,
+                                      borderRadius: 2,
+                                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                      border: `1px solid ${currentRiskColors.border}30`,
+                                    }}>
+                                      <Typography variant="caption" color="text.secondary">Code</Typography>
+                                      <Typography variant="h6" sx={{ 
+                                        fontWeight: 'bold',
+                                        color: org.codeScanning.total > 0 ? currentRiskColors.accent : 'text.primary'
+                                      }}>
+                                        {org.codeScanning.total}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                  <Grid item xs={4}>
+                                    <Box sx={{ 
+                                      textAlign: 'center',
+                                      p: 1,
+                                      borderRadius: 2,
+                                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                      border: `1px solid ${currentRiskColors.border}30`,
+                                    }}>
+                                      <Typography variant="caption" color="text.secondary">Secrets</Typography>
+                                      <Typography variant="h6" sx={{ 
+                                        fontWeight: 'bold',
+                                        color: org.secretScanning.total > 0 ? currentRiskColors.accent : 'text.primary'
+                                      }}>
+                                        {org.secretScanning.total}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                  <Grid item xs={4}>
+                                    <Box sx={{ 
+                                      textAlign: 'center',
+                                      p: 1,
+                                      borderRadius: 2,
+                                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                      border: `1px solid ${currentRiskColors.border}30`,
+                                    }}>
+                                      <Typography variant="caption" color="text.secondary">Dependencies</Typography>
+                                      <Typography variant="h6" sx={{ 
+                                        fontWeight: 'bold',
+                                        color: org.dependabot.total > 0 ? currentRiskColors.accent : 'text.primary'
+                                      }}>
+                                        {org.dependabot.total}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                </Grid>
+                                
+                                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                  {(org.codeScanning.critical + org.secretScanning.critical + org.dependabot.critical) > 0 && (
+                                    <Chip 
+                                      size="small" 
+                                      label={`${org.codeScanning.critical + org.secretScanning.critical + org.dependabot.critical} Critical`} 
+                                      sx={{
+                                        backgroundColor: '#ffebee',
+                                        color: '#d32f2f',
+                                        fontWeight: 'bold',
+                                        border: '1px solid #f44336',
+                                      }}
+                                    />
+                                  )}
+                                  {(org.codeScanning.high + org.secretScanning.high + org.dependabot.high) > 0 && (
+                                    <Chip 
+                                      size="small" 
+                                      label={`${org.codeScanning.high + org.secretScanning.high + org.dependabot.high} High`} 
+                                      sx={{
+                                        backgroundColor: '#fff3e0',
+                                        color: '#f57c00',
+                                        fontWeight: 'bold',
+                                        border: '1px solid #ff9800',
+                                      }}
+                                    />
+                                  )}
+                                  {(org.codeScanning.medium + org.secretScanning.medium + org.dependabot.medium) > 0 && (
+                                    <Chip 
+                                      size="small" 
+                                      label={`${org.codeScanning.medium + org.secretScanning.medium + org.dependabot.medium} Medium`} 
+                                      sx={{
+                                        backgroundColor: '#f3e5f5',
+                                        color: '#7b1fa2',
+                                        fontWeight: 'bold',
+                                        border: '1px solid #9c27b0',
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          </Grid>
+                          );
+                        })}
+                    </Grid>
+                    
+                    {enterpriseData.organizationBreakdown.length > 6 && (
+                      <Box sx={{ mt: 3, textAlign: 'center' }}>
+                        {!showAllOrganizations ? (
+                          <Button 
+                            variant="contained"
+                            onClick={() => setShowAllOrganizations(true)}
                             sx={{
-                              backgroundColor: enterpriseData.codeScanning.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
-                              '& .MuiChip-label': {
-                                color: enterpriseData.codeScanning.total > 0 ? 'white !important' : '#666 !important',
-                                fontWeight: 'bold !important',
-                                WebkitTextFillColor: enterpriseData.codeScanning.total > 0 ? 'white !important' : '#666 !important',
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              color: 'white',
+                              fontWeight: 'bold',
+                              borderRadius: 2,
+                              px: 3,
+                              '&:hover': {
+                                background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 4px 15px rgba(103, 126, 234, 0.4)',
                               },
                             }}
-                          />
-                        </Box>
-                      }
-                      iconPosition="start"
-                    />
-                    <Tab 
-                      icon={<SecretIcon />}
-                      label={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <span className="tab-text">Secret Scanning</span>
-                          <Chip 
-                            label={enterpriseData.secretScanning.total} 
-                            size="small" 
+                          >
+                            View All {enterpriseData.organizationBreakdown.length} Organizations
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outlined"
+                            onClick={() => setShowAllOrganizations(false)}
                             sx={{
-                              backgroundColor: enterpriseData.secretScanning.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
-                              '& .MuiChip-label': {
-                                color: enterpriseData.secretScanning.total > 0 ? 'white !important' : '#666 !important',
-                                fontWeight: 'bold !important',
-                                WebkitTextFillColor: enterpriseData.secretScanning.total > 0 ? 'white !important' : '#666 !important',
+                              borderColor: '#667eea',
+                              color: '#667eea',
+                              fontWeight: 'bold',
+                              borderRadius: 2,
+                              px: 3,
+                              '&:hover': {
+                                borderColor: '#5a6fd8',
+                                backgroundColor: 'rgba(103, 126, 234, 0.1)',
+                                color: '#5a6fd8',
                               },
                             }}
-                          />
-                        </Box>
-                      }
-                      iconPosition="start"
-                    />
-                    <Tab 
-                      icon={<DependabotIcon />}
-                      label={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <span className="tab-text">Dependabot</span>
-                          <Chip 
-                            label={enterpriseData.dependabot.total} 
-                            size="small" 
-                            sx={{
-                              backgroundColor: enterpriseData.dependabot.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
-                              '& .MuiChip-label': {
-                                color: enterpriseData.dependabot.total > 0 ? 'white !important' : '#666 !important',
-                                fontWeight: 'bold !important',
-                                WebkitTextFillColor: enterpriseData.dependabot.total > 0 ? 'white !important' : '#666 !important',
-                              },
-                            }}
-                          />
-                        </Box>
-                      }
-                      iconPosition="start"
-                    />
-                  </Tabs>
+                          >
+                            Show Less (Top 6 Organizations)
+                          </Button>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Card>
+              )}
+                    </CardContent>
+                  </Card>
                 </Box>
+              </Fade>
+            )}
 
-                {/* Tab Content */}
-                <CardContent sx={{ p: 3 }}>
-                  {activeTab === 0 && renderVulnerabilityStats(
-                    enterpriseData.codeScanning, 
-                    'Code Scanning',
-                    <CodeIcon color="primary" />
-                  )}
-                  {activeTab === 1 && renderVulnerabilityStats(
-                    enterpriseData.secretScanning, 
-                    'Secret Scanning',
-                    <SecretIcon color="primary" />
-                  )}
-                  {activeTab === 2 && renderVulnerabilityStats(
-                    enterpriseData.dependabot, 
-                    'Dependabot',
-                    <DependabotIcon color="primary" />
-                  )}
-                </CardContent>
-              </Paper>
-            </Paper>
-          </Box>
-        </Fade>
-      )}
-
-      {/* Help Section */}
-      {!enterpriseData && !isLoading && !jobProgress && (
-        <Fade in={true} timeout={1200} style={{ transitionDelay: '600ms' }}>
-          <Paper 
-            elevation={2}
-            sx={{ 
-              p: 3, 
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, rgba(103, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-              border: '1px solid rgba(103, 126, 234, 0.2)',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box sx={{ 
-                p: 1, 
-                borderRadius: '50%', 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                mr: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <SecurityIcon sx={{ fontSize: 20, color: 'white' }} />
-              </Box>
-              <Typography 
-                variant="h6" 
+            {/* Help Section */}
+            {!enterpriseData && !isLoading && !jobProgress && (
+            <Fade in={true} timeout={1200} style={{ transitionDelay: '600ms' }}>
+              <Card 
+                elevation={8}
                 sx={{ 
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                  },
                 }}
               >
-                Getting Started
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <SecurityIcon 
+                      sx={{ 
+                        fontSize: 32, 
+                        mr: 2, 
+                        color: theme.palette.primary.main,
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                      }} 
+                    />
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 'bold',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
+                      Getting Started
+                    </Typography>
+                  </Box>
+                <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                  <Typography component="li" color="text.secondary" sx={{ mb: 1 }}>
+                    Enter your GitHub Enterprise name in the search field above
+                  </Typography>
+                  <Typography component="li" color="text.secondary" sx={{ mb: 1 }}>
+                    Make sure your Personal Access Token has the necessary permissions
+                  </Typography>
+                  <Typography component="li" color="text.secondary" sx={{ mb: 1 }}>
+                    Click "Analyze Enterprise" to begin the comprehensive security assessment
+                  </Typography>
+                  <Typography component="li" color="text.secondary">
+                    Review the consolidated vulnerability data and risk breakdown
+                  </Typography>
+                </Box>
+                </CardContent>
+              </Card>
+            </Fade>
+          )}
+
+          {/* Organization Table Dialog */}
+          <Dialog
+            open={showOrganizationTable}
+            onClose={() => setShowOrganizationTable(false)}
+            maxWidth="lg"
+            fullWidth
+          >
+            <DialogTitle
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <RiskIcon 
+                    sx={{ 
+                      fontSize: 28, 
+                      mr: 2,
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+                    }} 
+                  />
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 'bold',
+                    color: 'white',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  }}>
+                    Organization Risk Analysis
+                  </Typography>
+                </Box>
+                <IconButton 
+                  onClick={() => setShowOrganizationTable(false)}
+                  sx={{
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent sx={{ p: 0 }}>
+              {enterpriseData?.organizationBreakdown && renderOrganizationTable(enterpriseData.organizationBreakdown)}
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mr: 'auto' }}>
+                {enterpriseData?.organizationBreakdown?.length || 0} organizations analyzed
               </Typography>
-            </Box>
-            <Box component="ul" sx={{ m: 0, pl: 2 }}>
-              <Typography component="li" color="text.secondary" sx={{ mb: 1 }}>
-                Enter your GitHub Enterprise name in the search field above
-              </Typography>
-              <Typography component="li" color="text.secondary" sx={{ mb: 1 }}>
-                Make sure your Personal Access Token has the necessary permissions
-              </Typography>
-              <Typography component="li" color="text.secondary">
-                View consolidated vulnerability data across all enterprise repositories
-              </Typography>
-            </Box>
-          </Paper>
-        </Fade>
-      )}
-    </Box>
-  </Container>
-</Box>
-</Fade>
+              <Button 
+                onClick={() => setShowOrganizationTable(false)}
+                variant="contained"
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  borderRadius: 2,
+                  px: 3,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 15px rgba(103, 126, 234, 0.4)',
+                  },
+                }}
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
+          </Box>
+        </Container>
+      </Box>
+    </Fade>
   );
 };
 

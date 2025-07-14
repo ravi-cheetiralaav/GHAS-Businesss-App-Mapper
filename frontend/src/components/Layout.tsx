@@ -72,7 +72,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           }}>
             <GitHubIcon sx={{ color: 'white', fontSize: 20 }} />
           </Box>
-          <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
+          <Typography variant="h6" noWrap sx={{ fontWeight: 700, color: 'white' }}>
             GHAS Insights
           </Typography>
         </Box>
@@ -112,7 +112,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               primary={item.label} 
               sx={{ 
                 '& .MuiTypography-root': { 
-                  fontWeight: location.pathname === item.path ? 700 : 500 
+                  fontWeight: location.pathname === item.path ? 700 : 500,
+                  color: 'white'
                 } 
               }} 
             />

@@ -28,6 +28,12 @@ export interface PartialResults {
   codeScanning?: VulnerabilityStats;
   secretScanning?: VulnerabilityStats;
   dependabot?: VulnerabilityStats;
+  organizationBreakdown?: any[];
+  organizationSummary?: {
+    totalOrganizations: number;
+    totalRepositories: number;
+    totalAlerts: number;
+  };
 }
 
 export interface VulnerabilityStats {
