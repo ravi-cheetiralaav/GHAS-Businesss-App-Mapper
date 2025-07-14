@@ -139,10 +139,10 @@ const Dashboard: React.FC = () => {
               <DashboardIcon sx={{ fontSize: 32, color: 'white' }} />
             </Box>
             <Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
                 Dashboard
               </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, color: 'white' }}>
                 Overview of your organization's vulnerability insights
               </Typography>
             </Box>
@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
           
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
             <SecurityIcon sx={{ mr: 1, fontSize: 20 }} />
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            <Typography variant="body1" sx={{ fontWeight: 500, color: 'white' }}>
               Organization: <Chip label={organization} size="small" sx={{ 
                 ml: 1, 
                 background: 'rgba(255, 255, 255, 0.2)', 

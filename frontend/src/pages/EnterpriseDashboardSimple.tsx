@@ -101,10 +101,10 @@ function EnterpriseDashboard() {
                             <EnterpriseIcon sx={{ fontSize: 32, color: 'white' }} />
                         </Box>
                         <Box>
-                            <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
+                            <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
                                 Enterprise Risk Dashboard
                             </Typography>
-                            <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+                            <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, color: 'white' }}>
                                 Consolidated view of all security vulnerabilities across your enterprise
                             </Typography>
                         </Box>
@@ -112,7 +112,7 @@ function EnterpriseDashboard() {
                     
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
                         <ShieldIcon sx={{ mr: 1, fontSize: 20 }} />
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'white' }}>
                             {dashboardData.totalAlerts} total alerts found across all repositories
                         </Typography>
                     </Box>
