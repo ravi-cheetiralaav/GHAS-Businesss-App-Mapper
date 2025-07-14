@@ -20,6 +20,9 @@ import {
 } from '@mui/material';
 import { GridOnOutlined } from '@mui/icons-material';
 import { BusinessApplicationVulnerabilityData } from '../services/api';
+import * as designSystem from '../styles/theme';
+import { styleMixins } from '../styles/mixins';
+import { GradientText, SeverityChip } from './common/StyledComponents';
 
 // Initialize Heatmap module
 try {
@@ -55,14 +58,21 @@ const RiskLegend = () => {
 
   return (
     <Box mt={3}>
-      <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+      <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.bold }}>
         Risk Level Legend
       </Typography>
       <Grid container spacing={2}>
         {legendItems.map((item) => (
           <Grid item key={item.label} xs>
             <Box display="flex" alignItems="center">
-              <Box sx={{ width: 20, height: 20, backgroundColor: item.color, border: '1px solid #ccc', mr: 1 }} />
+              <Box sx={{ 
+                width: 20, 
+                height: 20, 
+                backgroundColor: item.color, 
+                border: `1px solid ${designSystem.COLORS.github.border.default}`, 
+                mr: 1,
+                borderRadius: designSystem.SPACING.borderRadius.small
+              }} />
               <Typography variant="body2">{item.label}</Typography>
             </Box>
           </Grid>
@@ -297,10 +307,10 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
 
   const getLegendItems = () => {
     const items = [
-      { label: 'Critical', color: '#8b0000', count: heatmapData.reduce((sum, item) => sum + item.criticalCount, 0) },
-      { label: 'High', color: '#d32f2f', count: heatmapData.reduce((sum, item) => sum + item.highCount, 0) },
-      { label: 'Medium', color: '#f57c00', count: heatmapData.reduce((sum, item) => sum + item.mediumCount, 0) },
-      { label: 'Low', color: '#ff9800', count: heatmapData.reduce((sum, item) => sum + item.lowCount, 0) },
+      { label: 'Critical', severity: 'critical' as const, count: heatmapData.reduce((sum, item) => sum + item.criticalCount, 0) },
+      { label: 'High', severity: 'high' as const, count: heatmapData.reduce((sum, item) => sum + item.highCount, 0) },
+      { label: 'Medium', severity: 'medium' as const, count: heatmapData.reduce((sum, item) => sum + item.mediumCount, 0) },
+      { label: 'Low', severity: 'low' as const, count: heatmapData.reduce((sum, item) => sum + item.lowCount, 0) },
     ];
     return items;
   };
@@ -310,20 +320,7 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
       <Card 
         elevation={8}
         sx={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          borderRadius: 3,
-          overflow: 'hidden',
-          position: 'relative',
-          mb: 4,
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 3,
-            background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-          },
+          ...styleMixins.elevatedCard(8),
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -337,23 +334,14 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
                 }} 
               />
-              <Typography 
-                variant="h6" 
-                fontWeight="bold"
-                sx={{ 
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
+              <GradientText variant="h6">
                 Business Applications Vulnerability Heatmap
-              </Typography>
+              </GradientText>
             </Box>
             <Box
               sx={{
                 background: 'rgba(255, 255, 255, 0.9)',
-                borderRadius: 2,
+                borderRadius: designSystem.SPACING.borderRadius.medium,
                 p: 1,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 border: '1px solid rgba(102, 126, 234, 0.2)',
@@ -367,7 +355,7 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
                       color: theme.palette.primary.main 
                     },
                     fontSize: '0.875rem',
-                    fontWeight: 500,
+                    fontWeight: designSystem.TYPOGRAPHY.weights.medium,
                   }}
                 >
                   View Mode
@@ -442,28 +430,11 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
                   <Grid container spacing={2}>
                     {getLegendItems().map((item) => (
                       <Grid item key={item.label}>
-                        <Paper
-                          elevation={4}
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            background: `linear-gradient(135deg, ${item.color} 0%, ${item.color}CC 100%)`,
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: '0.85rem',
-                            boxShadow: `0 4px 12px ${item.color}40`,
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                              transform: 'translateY(-2px)',
-                              boxShadow: `0 6px 20px ${item.color}60`,
-                            },
-                          }}
-                        >
-                          {`${item.label}: ${item.count}`}
-                        </Paper>
+                        <SeverityChip 
+                          severity={item.severity}
+                          count={item.count}
+                          label={item.label}
+                        />
                       </Grid>
                     ))}
                   </Grid>
@@ -486,9 +457,9 @@ const BusinessApplicationHeatmap: React.FC<BusinessApplicationHeatmapProps> = ({
               justifyContent="center"
               height={300}
               sx={{
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderRadius: 2,
-                border: '2px dashed rgba(0,0,0,0.1)',
+                background: designSystem.COLORS.gradients.background.light,
+                borderRadius: designSystem.SPACING.borderRadius.medium,
+                border: `2px dashed ${designSystem.COLORS.github.border.muted}`,
               }}
             >
               <Box textAlign="center">

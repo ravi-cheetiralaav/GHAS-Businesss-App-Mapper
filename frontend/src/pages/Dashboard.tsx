@@ -21,6 +21,9 @@ import {
 } from '@mui/icons-material';
 import { businessApplicationsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { styleMixins } from '../styles/mixins';
+import { COLORS } from '../styles/theme';
+import { GradientText } from '../components/common/StyledComponents';
 import VulnerabilityOverviewChart from '../components/VulnerabilityOverviewChart';
 import ApplicationRiskChart from '../components/ApplicationRiskChart';
 import VulnerabilityTrendChart from '../components/VulnerabilityTrendChart';
@@ -103,61 +106,41 @@ const Dashboard: React.FC = () => {
     <Box sx={{ p: 3 }}>
       {/* Header Section */}
       <Fade in timeout={600}>
-        <Paper 
-          elevation={0}
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: 4,
-            p: 4,
-            mb: 4,
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: '300px',
-              height: '300px',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-              borderRadius: '50%',
-              transform: 'translate(50%, -50%)',
-            }
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Box sx={{ 
-              p: 1.5, 
-              borderRadius: '50%', 
-              background: 'rgba(255, 255, 255, 0.2)',
-              mr: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <DashboardIcon sx={{ fontSize: 32, color: 'white' }} />
+        <Paper elevation={0} sx={styleMixins.headerCard()}>
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ 
+                p: 1.5, 
+                borderRadius: '50%', 
+                background: 'rgba(255, 255, 255, 0.2)',
+                mr: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <DashboardIcon sx={{ fontSize: 32, color: 'white' }} />
+              </Box>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
+                  Dashboard
+                </Typography>
+                <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, color: 'white' }}>
+                  Overview of your organization's vulnerability insights
+                </Typography>
+              </Box>
             </Box>
-            <Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5, color: 'white' }}>
-                Dashboard
-              </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, color: 'white' }}>
-                Overview of your organization's vulnerability insights
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+              <SecurityIcon sx={{ mr: 1, fontSize: 20 }} />
+              <Typography variant="body1" sx={{ fontWeight: 500, color: 'white' }}>
+                Organization: <Chip label={organization} size="small" sx={{ 
+                  ml: 1, 
+                  background: 'rgba(255, 255, 255, 0.2)', 
+                  color: 'white',
+                  fontWeight: 600,
+                }} />
               </Typography>
             </Box>
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-            <SecurityIcon sx={{ mr: 1, fontSize: 20 }} />
-            <Typography variant="body1" sx={{ fontWeight: 500, color: 'white' }}>
-              Organization: <Chip label={organization} size="small" sx={{ 
-                ml: 1, 
-                background: 'rgba(255, 255, 255, 0.2)', 
-                color: 'white',
-                fontWeight: 600,
-              }} />
-            </Typography>
           </Box>
         </Paper>
       </Fade>
