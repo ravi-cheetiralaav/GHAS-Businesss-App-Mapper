@@ -15,6 +15,7 @@ import {
   Alert,
   Fade,
   Link,
+  Tooltip,
 } from '@mui/material';
 import {
   Public as PublicIcon,
@@ -262,26 +263,64 @@ const Repositories: React.FC = () => {
                     }}
                   >
                     <TableCell>
-                      <Link
-                        href={repo.htmlUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{
-                          textDecoration: 'none',
-                          color: 'primary.main',
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            color: 'primary.dark',
-                            transform: 'translateX(2px)',
-                          }
-                        }}
-                      >
-                        {repo.name}
-                        <ExternalIcon sx={{ ml: 1, fontSize: 16 }} />
-                      </Link>
+                      <Tooltip title={`Click to open ${repo.name} on GitHub`} arrow>
+                        <Link
+                          href={repo.htmlUrl || (repo.fullName ? `https://github.com/${repo.fullName}` : `https://github.com/${organization}/${repo.name}`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            textDecoration: 'none',
+                            color: 'primary.main',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            transition: 'all 0.3s ease',
+                            cursor: 'pointer',
+                            borderRadius: 1,
+                            padding: '4px 8px',
+                            '&:hover': {
+                              color: 'primary.dark',
+                              backgroundColor: 'rgba(103, 126, 234, 0.1)',
+                              transform: 'translateX(2px)',
+                              textDecoration: 'underline',
+                            }
+                          }}
+                          onClick={(e) => {
+                            console.log('Repository click:', {
+                              name: repo.name,
+                              htmlUrl: repo.htmlUrl,
+                              fullName: repo.fullName,
+                              fullRepo: repo
+                            });
+                            
+                            e.preventDefault();
+                            
+                            // Try multiple URL construction strategies
+                            let targetUrl = repo.htmlUrl;
+                            
+                            if (!targetUrl && repo.fullName) {
+                              // Fallback: construct URL from fullName
+                              targetUrl = `https://github.com/${repo.fullName}`;
+                              console.log('Constructed URL from fullName:', targetUrl);
+                            } else if (!targetUrl && repo.name) {
+                              // Get organization from auth context and construct URL
+                              targetUrl = `https://github.com/${organization}/${repo.name}`;
+                              console.log('Constructed URL from org and name:', targetUrl);
+                            }
+                            
+                            if (targetUrl) {
+                              console.log('Opening URL:', targetUrl);
+                              window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                            } else {
+                              console.error('Could not determine repository URL for:', repo);
+                              alert('Unable to open repository. URL not found.');
+                            }
+                          }}
+                        >
+                          {repo.name}
+                          <ExternalIcon sx={{ ml: 1, fontSize: 16, opacity: 0.7 }} />
+                        </Link>
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>

@@ -26,15 +26,20 @@ import {
   VpnKey as SecretIcon,
   BugReport as DependabotIcon,
   Business as EnterpriseIcon,
+  Wifi as ConnectedIcon,
+  WifiOff as DisconnectedIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import { api } from '../services/api';
+import { useEnterpriseAsyncJob } from '../hooks/useEnterpriseAsyncJob';
+import JobProgressDisplay from '../components/JobProgressDisplay';
 
 interface VulnerabilityStats {
   total: number;
+  critical: number;
   high: number;
   medium: number;
   low: number;
+  error: number;
 }
 
 interface EnterpriseData {
@@ -50,9 +55,17 @@ const EnterpriseDashboard: React.FC = () => {
   const [enterpriseName, setEnterpriseName] = useState('');
   const [searchedEnterprise, setSearchedEnterprise] = useState('');
   const [enterpriseData, setEnterpriseData] = useState<EnterpriseData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
+  
+  // Use the new async job hook
+  const {
+    jobProgress,
+    isConnected,
+    isLoading,
+    error,
+    startEnterpriseJob,
+    reset,
+  } = useEnterpriseAsyncJob();
 
   const handleSearch = async () => {
     console.log('🔍 Starting enterprise search...');
@@ -60,162 +73,69 @@ const EnterpriseDashboard: React.FC = () => {
     
     if (!enterpriseName.trim()) {
       console.warn('❌ No enterprise name provided');
-      setError('Please enter an enterprise name');
       return;
     }
 
     if (!token) {
       console.warn('❌ No authentication token found');
-      setError('No authentication token found. Please log in again.');
       return;
     }
 
-    console.log('✅ Starting search with enterprise:', enterpriseName.trim());
-    console.log('✅ Token available:', token ? 'Yes' : 'No');
-    console.log('🚀 Setting loading state to true...');
+    console.log('✅ Starting async enterprise job...');
     
-    setLoading(true);
-    setError(null);
-
+    // Clear previous enterprise data but keep error state
+    setEnterpriseData(null);
+    setSearchedEnterprise(enterpriseName.trim());
+    
     try {
-      console.log('🌐 Making API calls to enterprise endpoints...');
-      const startTime = Date.now();
+      // Start the async job
+      const jobResponse = await startEnterpriseJob(enterpriseName.trim(), token);
       
-      // Log API base URL and full endpoints
-      console.log('API Base URL:', process.env.REACT_APP_API_URL || 'http://localhost:8080');
-      console.log('Code scanning endpoint:', `/api/enterprise/${enterpriseName}/code-scanning/alerts`);
-      console.log('Secret scanning endpoint:', `/api/enterprise/${enterpriseName}/secret-scanning/alerts`);
-      console.log('Dependabot endpoint:', `/api/enterprise/${enterpriseName}/dependabot/alerts`);
-      
-      // Make API calls to get enterprise vulnerability data
-      const [codeResponse, secretResponse, dependabotResponse] = await Promise.all([
-        api.get(`/api/enterprise/${enterpriseName}/code-scanning/alerts`, {
-          timeout: 300000 // 5 minutes timeout for enterprise data extraction
-        }).then(response => {
-          console.log('✅ Code scanning API call completed:', response.status);
-          console.log('Code scanning data length:', response.data?.length || 0);
-          return response;
-        }).catch(error => {
-          console.error('❌ Code scanning API call failed:', error);
-          console.error('Error details:', {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-            message: error.message
-          });
-          throw error;
-        }),
-        api.get(`/api/enterprise/${enterpriseName}/secret-scanning/alerts`, {
-          timeout: 300000 // 5 minutes timeout for enterprise data extraction
-        }).then(response => {
-          console.log('✅ Secret scanning API call completed:', response.status);
-          console.log('Secret scanning data length:', response.data?.length || 0);
-          return response;
-        }).catch(error => {
-          console.error('❌ Secret scanning API call failed:', error);
-          console.error('Error details:', {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-            message: error.message
-          });
-          throw error;
-        }),
-        api.get(`/api/enterprise/${enterpriseName}/dependabot/alerts`, {
-          timeout: 300000 // 5 minutes timeout for enterprise data extraction
-        }).then(response => {
-          console.log('✅ Dependabot API call completed:', response.status);
-          console.log('Dependabot data length:', response.data?.length || 0);
-          return response;
-        }).catch(error => {
-          console.error('❌ Dependabot API call failed:', error);
-          console.error('Error details:', {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-            message: error.message
-          });
-          throw error;
-        })
-      ]);
-
-      const endTime = Date.now();
-      console.log(`⏱️ All API calls completed in ${endTime - startTime}ms`);
-
-      // Log the actual data structure for debugging
-      console.log('📊 Code scanning alerts:', codeResponse.data);
-      console.log('📊 Secret scanning alerts:', secretResponse.data);
-      console.log('📊 Dependabot alerts:', dependabotResponse.data);
-
-      console.log('🔢 Processing vulnerability counts...');
-      const mockData: EnterpriseData = {
-        name: enterpriseName,
-        codeScanning: {
-          total: codeResponse.data?.length || 0,
-          high: codeResponse.data?.filter((alert: any) => 
-            alert.rule?.securitySeverityLevel === 'high' || alert.rule?.severity === 'high'
-          )?.length || 0,
-          medium: codeResponse.data?.filter((alert: any) => 
-            alert.rule?.securitySeverityLevel === 'medium' || alert.rule?.severity === 'medium'
-          )?.length || 0,
-          low: codeResponse.data?.filter((alert: any) => 
-            alert.rule?.securitySeverityLevel === 'low' || alert.rule?.severity === 'low'
-          )?.length || 0,
-        },
-        secretScanning: {
-          total: secretResponse.data?.length || 0,
-          high: secretResponse.data?.length || 0, // All secrets are considered high priority
-          medium: 0,
-          low: 0,
-        },
-        dependabot: {
-          total: dependabotResponse.data?.length || 0,
-          high: dependabotResponse.data?.filter((alert: any) => 
-            alert.securityAdvisory?.severity === 'high' || alert.securityVulnerability?.severity === 'high'
-          )?.length || 0,
-          medium: dependabotResponse.data?.filter((alert: any) => 
-            alert.securityAdvisory?.severity === 'medium' || alert.securityVulnerability?.severity === 'medium'
-          )?.length || 0,
-          low: dependabotResponse.data?.filter((alert: any) => 
-            alert.securityAdvisory?.severity === 'low' || alert.securityVulnerability?.severity === 'low'
-          )?.length || 0,
+      if (jobResponse) {
+        console.log('🎯 Job response received:', jobResponse);
+        
+        // If we have cached results, process them immediately
+        if (jobResponse.useExistingResults && jobResponse.existingResults) {
+          console.log('📋 Processing cached results...');
+          processEnterpriseResults(jobResponse.existingResults);
         }
-      };
-
-      console.log('📈 Final processed data:', mockData);
-      console.log('✅ Setting enterprise data and search complete');
-      
-      setEnterpriseData(mockData);
-      setSearchedEnterprise(enterpriseName);
-    } catch (err: any) {
-      console.error('💥 Error in handleSearch:', err);
-      console.error('💥 Error name:', err.name);
-      console.error('💥 Error message:', err.message);
-      console.error('💥 Error code:', err.code);
-      console.error('💥 Error response:', err.response);
-      
-      if (err.response) {
-        console.error('💥 Response status:', err.response.status);
-        console.error('💥 Response headers:', err.response.headers);
-        console.error('💥 Response data:', err.response.data);
       }
-      
-      if (err.code === 'ECONNABORTED') {
-        setError('Request timed out. The enterprise has a large amount of data. Please try again.');
-      } else if (err.response?.status === 401) {
-        setError('Authentication failed. Please check your GitHub token and permissions.');
-      } else if (err.response?.status === 404) {
-        setError('Enterprise not found. Please check the enterprise name.');
-      } else if (err.response?.status === 403) {
-        setError('Access denied. You may not have permissions to access this enterprise data.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to fetch enterprise data. Please check the enterprise name and your access permissions.');
-      }
-    } finally {
-      console.log('🏁 Setting loading state to false');
-      setLoading(false);
+    } catch (error) {
+      console.error('❌ Error starting enterprise job:', error);
     }
   };
+
+  const processEnterpriseResults = (results: any) => {
+    console.log('📊 Processing enterprise results:', results);
+    console.log('📊 Code scanning data:', results?.codeScanning);
+    console.log('📊 Secret scanning data:', results?.secretScanning);
+    console.log('📊 Dependabot data:', results?.dependabot);
+    
+    // Convert the results to the expected format
+    // This is a simplified conversion - you may need to adjust based on the actual structure
+    const processedData: EnterpriseData = {
+      name: searchedEnterprise,
+      codeScanning: results?.codeScanning || {
+        total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0
+      },
+      secretScanning: results?.secretScanning || {
+        total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0
+      },
+      dependabot: results?.dependabot || {
+        total: 0, critical: 0, high: 0, medium: 0, low: 0, error: 0
+      }
+    };
+    
+    console.log('📊 Processed enterprise data:', processedData);
+    setEnterpriseData(processedData);
+  };
+
+  // Watch for job completion
+  React.useEffect(() => {
+    if (jobProgress?.status === 'COMPLETED' && jobProgress.partialResults) {
+      processEnterpriseResults(jobProgress.partialResults);
+    }
+  }, [jobProgress, searchedEnterprise]);
 
   const renderVulnerabilityStats = (stats: VulnerabilityStats, type: string, icon: React.ReactNode) => (
     <Fade in={true}>
@@ -258,12 +178,13 @@ const EnterpriseDashboard: React.FC = () => {
               {type} Vulnerabilities
             </Typography>
           </Box>
-          <Grid container spacing={3}>
-            <Grid item xs={6} sm={3}>
+          <Grid container spacing={2}>
+            {/* Total Card */}
+            <Grid item xs={6} sm={2.4}>
               <Paper 
                 elevation={2} 
                 sx={{ 
-                  p: 3, 
+                  p: 2.5, 
                   textAlign: 'center', 
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, rgba(103, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
@@ -277,7 +198,7 @@ const EnterpriseDashboard: React.FC = () => {
                 }}
               >
                 <Typography 
-                  variant="h3" 
+                  variant="h4" 
                   sx={{ 
                     fontWeight: 'bold', 
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -294,24 +215,53 @@ const EnterpriseDashboard: React.FC = () => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={6} sm={3}>
+            
+            {/* Critical Card */}
+            <Grid item xs={6} sm={2.4}>
               <Paper 
                 elevation={2} 
                 sx={{ 
-                  p: 3, 
+                  p: 2.5, 
                   textAlign: 'center', 
                   borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(229, 57, 53, 0.1) 100%)',
-                  border: '1px solid rgba(244, 67, 54, 0.2)',
+                  background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%)',
+                  border: '1px solid rgba(211, 47, 47, 0.3)',
                   transition: 'all 0.3s ease-in-out',
                   '&:hover': { 
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(244, 67, 54, 0.2)',
-                    background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.15) 0%, rgba(229, 57, 53, 0.15) 100%)',
+                    boxShadow: '0 12px 40px rgba(211, 47, 47, 0.25)',
+                    background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.15) 0%, rgba(211, 47, 47, 0.15) 100%)',
                   }
                 }}
               >
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: theme.palette.error.main, mb: 1 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#d32f2f', mb: 1 }}>
+                  {stats.critical}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Critical
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            {/* High Card */}
+            <Grid item xs={6} sm={2.4}>
+              <Paper 
+                elevation={2} 
+                sx={{ 
+                  p: 2.5, 
+                  textAlign: 'center', 
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, rgba(245, 124, 0, 0.1) 0%, rgba(245, 124, 0, 0.1) 100%)',
+                  border: '1px solid rgba(245, 124, 0, 0.3)',
+                  transition: 'all 0.3s ease-in-out',
+                  '&:hover': { 
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 40px rgba(245, 124, 0, 0.25)',
+                    background: 'linear-gradient(135deg, rgba(245, 124, 0, 0.15) 0%, rgba(245, 124, 0, 0.15) 100%)',
+                  }
+                }}
+              >
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f57c00', mb: 1 }}>
                   {stats.high}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -319,24 +269,26 @@ const EnterpriseDashboard: React.FC = () => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={6} sm={3}>
+            
+            {/* Medium Card */}
+            <Grid item xs={6} sm={2.4}>
               <Paper 
                 elevation={2} 
                 sx={{ 
-                  p: 3, 
+                  p: 2.5, 
                   textAlign: 'center', 
                   borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%)',
-                  border: '1px solid rgba(255, 152, 0, 0.2)',
+                  background: 'linear-gradient(135deg, rgba(251, 192, 45, 0.1) 0%, rgba(251, 192, 45, 0.1) 100%)',
+                  border: '1px solid rgba(251, 192, 45, 0.3)',
                   transition: 'all 0.3s ease-in-out',
                   '&:hover': { 
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(255, 152, 0, 0.2)',
-                    background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%)',
+                    boxShadow: '0 12px 40px rgba(251, 192, 45, 0.25)',
+                    background: 'linear-gradient(135deg, rgba(251, 192, 45, 0.15) 0%, rgba(251, 192, 45, 0.15) 100%)',
                   }
                 }}
               >
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: theme.palette.warning.main, mb: 1 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#fbc02d', mb: 1 }}>
                   {stats.medium}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -344,24 +296,26 @@ const EnterpriseDashboard: React.FC = () => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={6} sm={3}>
+            
+            {/* Low Card */}
+            <Grid item xs={6} sm={2.4}>
               <Paper 
                 elevation={2} 
                 sx={{ 
-                  p: 3, 
+                  p: 2.5, 
                   textAlign: 'center', 
                   borderRadius: 3,
-                  background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
-                  border: '1px solid rgba(76, 175, 80, 0.2)',
+                  background: 'linear-gradient(135deg, rgba(56, 142, 60, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%)',
+                  border: '1px solid rgba(56, 142, 60, 0.3)',
                   transition: 'all 0.3s ease-in-out',
                   '&:hover': { 
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(76, 175, 80, 0.2)',
-                    background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.15) 100%)',
+                    boxShadow: '0 12px 40px rgba(56, 142, 60, 0.25)',
+                    background: 'linear-gradient(135deg, rgba(56, 142, 60, 0.15) 0%, rgba(56, 142, 60, 0.15) 100%)',
                   }
                 }}
               >
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: theme.palette.success.main, mb: 1 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#388e3c', mb: 1 }}>
                   {stats.low}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
@@ -370,6 +324,37 @@ const EnterpriseDashboard: React.FC = () => {
               </Paper>
             </Grid>
           </Grid>
+          
+          {/* Second Row for Error severity */}
+          {stats.error > 0 && (
+            <Grid container spacing={2} sx={{ mt: 2 }}>
+              <Grid item xs={12} sm={12}>
+                <Paper 
+                  elevation={2} 
+                  sx={{ 
+                    p: 2.5, 
+                    textAlign: 'center', 
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(123, 31, 162, 0.1) 100%)',
+                    border: '1px solid rgba(156, 39, 176, 0.2)',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': { 
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 40px rgba(156, 39, 176, 0.2)',
+                      background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.15) 0%, rgba(123, 31, 162, 0.15) 100%)',
+                    }
+                  }}
+                >
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, mb: 1 }}>
+                    {stats.error}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Error (Unable to determine severity)
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          )}
         </CardContent>
       </Paper>
     </Fade>
@@ -424,7 +409,7 @@ const EnterpriseDashboard: React.FC = () => {
                     mb: 1,
                   }}
                 >
-                  Enterprise Security Dashboard
+                  Enterprise Risk Dashboard
                 </Typography>
                 <Typography 
                   variant="h6" 
@@ -433,7 +418,7 @@ const EnterpriseDashboard: React.FC = () => {
                     textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                   }}
                 >
-                  Comprehensive vulnerability assessment across your enterprise
+                  Comprehensive risk assessment across your enterprise
                 </Typography>
               </Box>
             </Box>
@@ -490,7 +475,7 @@ const EnterpriseDashboard: React.FC = () => {
                           onChange={(e) => setEnterpriseName(e.target.value)}
                           placeholder="Enter GitHub Enterprise name"
                           variant="outlined"
-                          disabled={loading}
+                          disabled={isLoading}
                           sx={{
                             '& .MuiOutlinedInput-root': {
                               borderRadius: 2,
@@ -513,11 +498,11 @@ const EnterpriseDashboard: React.FC = () => {
                         <Box display="flex" gap={1}>
                           <Button
                             onClick={handleSearch}
-                            disabled={loading || !enterpriseName.trim()}
+                            disabled={isLoading || !enterpriseName.trim()}
                             variant="contained"
                             size="large"
                             fullWidth
-                            startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+                            startIcon={isLoading ? <CircularProgress size={20} /> : <SearchIcon />}
                             sx={{
                               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                               borderRadius: 2,
@@ -534,7 +519,7 @@ const EnterpriseDashboard: React.FC = () => {
                               },
                             }}
                           >
-                            {loading ? 'Searching...' : 'Search'}
+                            {isLoading ? 'Starting Analysis...' : 'Analyze Enterprise'}
                           </Button>
                         </Box>
                       </Grid>
@@ -563,6 +548,32 @@ const EnterpriseDashboard: React.FC = () => {
                 </CardContent>
               </Paper>
             </Fade>
+
+            {/* Job Progress Display */}
+            {jobProgress && (
+              <JobProgressDisplay jobProgress={jobProgress} />
+            )}
+
+            {/* Connection Status */}
+            {jobProgress && (
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                {isConnected ? (
+                  <>
+                    <ConnectedIcon sx={{ color: 'success.main', fontSize: 20 }} />
+                    <Typography variant="caption" color="success.main">
+                      Real-time updates connected
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <DisconnectedIcon sx={{ color: 'warning.main', fontSize: 20 }} />
+                    <Typography variant="caption" color="warning.main">
+                      Connecting to real-time updates...
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            )}
 
             {/* Enterprise Data Section */}
             {enterpriseData && (
@@ -616,10 +627,19 @@ const EnterpriseDashboard: React.FC = () => {
                             '& .MuiTab-root': {
                               fontWeight: 'bold',
                               '&.Mui-selected': {
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                backgroundClip: 'text',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
+                                '& .tab-text': {
+                                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                  backgroundClip: 'text',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                },
+                                '& .MuiChip-root': {
+                                  // Ensure chips are not affected by the gradient text effect
+                                  '& .MuiChip-label': {
+                                    color: 'white !important',
+                                    WebkitTextFillColor: 'white !important',
+                                  },
+                                },
                               },
                             },
                             '& .MuiTabs-indicator': {
@@ -633,11 +653,18 @@ const EnterpriseDashboard: React.FC = () => {
                       icon={<CodeIcon />}
                       label={
                         <Box display="flex" alignItems="center" gap={1}>
-                          Code Scanning
+                          <span className="tab-text">Code Scanning</span>
                           <Chip 
                             label={enterpriseData.codeScanning.total} 
                             size="small" 
-                            color={enterpriseData.codeScanning.total > 0 ? 'error' : 'default'}
+                            sx={{
+                              backgroundColor: enterpriseData.codeScanning.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
+                              '& .MuiChip-label': {
+                                color: enterpriseData.codeScanning.total > 0 ? 'white !important' : '#666 !important',
+                                fontWeight: 'bold !important',
+                                WebkitTextFillColor: enterpriseData.codeScanning.total > 0 ? 'white !important' : '#666 !important',
+                              },
+                            }}
                           />
                         </Box>
                       }
@@ -647,11 +674,18 @@ const EnterpriseDashboard: React.FC = () => {
                       icon={<SecretIcon />}
                       label={
                         <Box display="flex" alignItems="center" gap={1}>
-                          Secret Scanning
+                          <span className="tab-text">Secret Scanning</span>
                           <Chip 
                             label={enterpriseData.secretScanning.total} 
                             size="small" 
-                            color={enterpriseData.secretScanning.total > 0 ? 'error' : 'default'}
+                            sx={{
+                              backgroundColor: enterpriseData.secretScanning.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
+                              '& .MuiChip-label': {
+                                color: enterpriseData.secretScanning.total > 0 ? 'white !important' : '#666 !important',
+                                fontWeight: 'bold !important',
+                                WebkitTextFillColor: enterpriseData.secretScanning.total > 0 ? 'white !important' : '#666 !important',
+                              },
+                            }}
                           />
                         </Box>
                       }
@@ -661,11 +695,18 @@ const EnterpriseDashboard: React.FC = () => {
                       icon={<DependabotIcon />}
                       label={
                         <Box display="flex" alignItems="center" gap={1}>
-                          Dependabot
+                          <span className="tab-text">Dependabot</span>
                           <Chip 
                             label={enterpriseData.dependabot.total} 
                             size="small" 
-                            color={enterpriseData.dependabot.total > 0 ? 'error' : 'default'}
+                            sx={{
+                              backgroundColor: enterpriseData.dependabot.total > 0 ? '#f44336 !important' : '#e0e0e0 !important',
+                              '& .MuiChip-label': {
+                                color: enterpriseData.dependabot.total > 0 ? 'white !important' : '#666 !important',
+                                fontWeight: 'bold !important',
+                                WebkitTextFillColor: enterpriseData.dependabot.total > 0 ? 'white !important' : '#666 !important',
+                              },
+                            }}
                           />
                         </Box>
                       }
@@ -699,7 +740,7 @@ const EnterpriseDashboard: React.FC = () => {
       )}
 
       {/* Help Section */}
-      {!enterpriseData && !loading && (
+      {!enterpriseData && !isLoading && !jobProgress && (
         <Fade in={true} timeout={1200} style={{ transitionDelay: '600ms' }}>
           <Paper 
             elevation={2}

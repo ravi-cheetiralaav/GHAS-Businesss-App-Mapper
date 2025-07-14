@@ -131,7 +131,7 @@ const Enterprise: React.FC = () => {
                         </Box>
                         <Box>
                             <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                                Enterprise Security
+                                Enterprise Risk
                             </Typography>
                             <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
                                 Comprehensive vulnerability assessment across your enterprise
