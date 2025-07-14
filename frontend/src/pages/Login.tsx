@@ -24,6 +24,9 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { githubApi } from '../services/api';
+import * as designSystem from '../styles/theme';
+import { styleMixins } from '../styles/mixins';
+import { GradientText } from '../components/common/StyledComponents';
 
 const Login: React.FC = () => {
   const [token, setToken] = useState('');
@@ -111,7 +114,7 @@ const Login: React.FC = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: designSystem.COLORS.gradients.primary,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -137,7 +140,7 @@ const Login: React.FC = () => {
               width: '100%', 
               maxWidth: 450,
               mx: 'auto',
-              borderRadius: 4,
+              borderRadius: designSystem.SPACING.borderRadius.large,
               overflow: 'hidden',
               background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(20px)',
@@ -160,7 +163,7 @@ const Login: React.FC = () => {
                   <Box sx={{ 
                     p: 2, 
                     borderRadius: '50%', 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: designSystem.COLORS.gradients.primary,
                     mr: 2,
                     display: 'flex',
                     alignItems: 'center',
@@ -169,16 +172,12 @@ const Login: React.FC = () => {
                     <GitHubIcon sx={{ fontSize: 32, color: 'white' }} />
                   </Box>
                   <Box>
-                    <Typography variant="h4" component="h1" sx={{ 
-                      fontWeight: 700,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
+                    <GradientText variant="h4" sx={{ 
+                      fontWeight: designSystem.TYPOGRAPHY.weights.bold,
                     }}>
-                      GHAS Insights
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      GHAS Security
+                    </GradientText>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.medium }}>
                       Advanced Security Platform
                     </Typography>
                   </Box>
@@ -196,7 +195,7 @@ const Login: React.FC = () => {
                   }
                 }}>
                   <SecurityOutlined sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" align="center" color="text.secondary" sx={{ fontWeight: 500 }}>
+                  <Typography variant="h6" align="center" color="text.secondary" sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.medium }}>
                     GitHub Advanced Security Vulnerability Insights
                   </Typography>
                 </Box>
@@ -206,15 +205,15 @@ const Login: React.FC = () => {
                   sx={{ 
                     mt: 2, 
                     mb: 3,
-                    borderRadius: 2,
-                    background: 'linear-gradient(135deg, rgba(103, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                    borderRadius: designSystem.SPACING.borderRadius.medium,
+                    background: designSystem.COLORS.gradients.background.subtle,
                     border: '1px solid rgba(103, 126, 234, 0.2)',
                     '& .MuiAlert-icon': {
                       color: 'primary.main',
                     }
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  <Typography variant="body2" sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.medium }}>
                     <strong>Setup Instructions:</strong><br />
                     1. Ensure the backend server is running on http://localhost:8080<br />
                     2. Personal Access Token (classic/fine grained)<br />
@@ -229,8 +228,8 @@ const Login: React.FC = () => {
                   justifyContent: 'space-between', 
                   mb: 3, 
                   p: 2.5, 
-                  background: 'linear-gradient(135deg, rgba(103, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-                  borderRadius: 2,
+                  background: designSystem.COLORS.gradients.background.subtle,
+                  borderRadius: designSystem.SPACING.borderRadius.medium,
                   border: '1px solid rgba(103, 126, 234, 0.1)',
                   transition: 'all 0.3s ease',
                   '&:hover': {
@@ -239,7 +238,7 @@ const Login: React.FC = () => {
                   }
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body2" sx={{ mr: 1, fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ mr: 1, fontWeight: designSystem.TYPOGRAPHY.weights.semiBold }}>
                       Backend Status:
                     </Typography>
                     {backendStatus === 'checking' && (
@@ -249,25 +248,25 @@ const Login: React.FC = () => {
                             mr: 1, 
                             width: 60,
                             height: 4,
-                            borderRadius: 2,
+                            borderRadius: designSystem.SPACING.borderRadius.medium,
                             backgroundColor: 'rgba(103, 126, 234, 0.1)',
                             '& .MuiLinearProgress-bar': {
-                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              background: designSystem.COLORS.gradients.primary,
                             }
                           }} 
                         />
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.medium }}>
                           Checking...
                         </Typography>
                       </Box>
                     )}
                     {backendStatus === 'online' && (
-                      <Typography variant="body2" color="success.main" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body2" color="success.main" sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.bold }}>
                         ✅ Online
                       </Typography>
                     )}
                     {backendStatus === 'offline' && (
-                      <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>
+                      <Typography variant="body2" color="error.main" sx={{ fontWeight: designSystem.TYPOGRAPHY.weights.bold }}>
                         ❌ Offline
                       </Typography>
                     )}
@@ -278,13 +277,13 @@ const Login: React.FC = () => {
                     disabled={backendStatus === 'checking'}
                     startIcon={<RefreshOutlined />}
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: designSystem.SPACING.borderRadius.medium,
                       textTransform: 'none',
-                      fontWeight: 600,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      fontWeight: designSystem.TYPOGRAPHY.weights.semiBold,
+                      background: designSystem.COLORS.gradients.primary,
                       color: 'white',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                        background: designSystem.COLORS.gradients.primaryHover,
                         transform: 'translateY(-1px)',
                       },
                       '&:disabled': {
@@ -308,7 +307,7 @@ const Login: React.FC = () => {
                     margin="normal"
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
+                        borderRadius: designSystem.SPACING.borderRadius.medium,
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           boxShadow: '0 2px 10px rgba(103, 126, 234, 0.15)',
@@ -350,7 +349,7 @@ const Login: React.FC = () => {
                     margin="normal"
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
+                        borderRadius: designSystem.SPACING.borderRadius.medium,
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           boxShadow: '0 2px 10px rgba(103, 126, 234, 0.15)',
@@ -372,7 +371,7 @@ const Login: React.FC = () => {
                         severity="error" 
                         sx={{ 
                           mt: 2,
-                          borderRadius: 2,
+                          borderRadius: designSystem.SPACING.borderRadius.medium,
                           background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(229, 57, 53, 0.1) 100%)',
                           border: '1px solid rgba(244, 67, 54, 0.2)',
                         }}
@@ -392,15 +391,15 @@ const Login: React.FC = () => {
                       mt: 3, 
                       mb: 2,
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: designSystem.SPACING.borderRadius.medium,
                       fontSize: '1.1rem',
-                      fontWeight: 700,
+                      fontWeight: designSystem.TYPOGRAPHY.weights.bold,
                       textTransform: 'none',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      background: designSystem.COLORS.gradients.primary,
                       boxShadow: '0 4px 20px rgba(103, 126, 234, 0.4)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                        background: designSystem.COLORS.gradients.primaryHover,
                         boxShadow: '0 6px 25px rgba(103, 126, 234, 0.5)',
                         transform: 'translateY(-2px)',
                       },

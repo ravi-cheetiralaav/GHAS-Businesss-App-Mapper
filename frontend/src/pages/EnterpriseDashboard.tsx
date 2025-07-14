@@ -45,6 +45,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useEnterpriseAsyncJob } from '../hooks/useEnterpriseAsyncJob';
 import JobProgressDisplay from '../components/JobProgressDisplay';
+import { styleMixins } from '../styles/mixins';
+import { COLORS } from '../styles/theme';
+import { GradientText, StatsBox, SeverityChip, RiskScoreChip, AlertCountChip, VulnerabilityCountChip, RepositoryCountChip, VulnerabilityCountWithWarning } from '../components/common/StyledComponents';
 
 interface VulnerabilityStats {
   total: number;
@@ -135,114 +138,51 @@ const EnterpriseDashboard: React.FC = () => {
   }, [jobProgress, searchedEnterprise]);
 
   const renderVulnerabilityStats = (stats: VulnerabilityStats, type: string) => (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, textAlign: 'center' }}>
+      {/* Main count display using centralized styles */}
       <Box sx={{
-        display: 'inline-flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        minWidth: 80, 
-        padding: '8px 20px', 
-        height: 80, 
+        ...styleMixins.centerContent(),
+        minWidth: 80,
+        padding: '8px 20px',
+        height: 80,
         borderRadius: '40px',
-        background: stats.total > 0 ? 
-          'linear-gradient(135deg, #FFA500 0%, #FF8C00 100%)' : 
-          'linear-gradient(135deg, #90EE90 0%, #7BCF7B 100%)',
+        background: stats.total > 0 ? COLORS.gradients.warning : COLORS.gradients.success,
         color: 'white',
-        fontWeight: 'bold', 
+        fontWeight: 'bold',
         fontSize: '2rem',
-        boxShadow: stats.total > 0 ? 
-          '0 4px 15px rgba(255, 165, 0, 0.4)' : 
-          '0 4px 15px rgba(144, 238, 144, 0.4)',
+        boxShadow: stats.total > 0 
+          ? '0 4px 15px rgba(255, 165, 0, 0.4)' 
+          : '0 4px 15px rgba(144, 238, 144, 0.4)',
         mb: 2,
       }}>
         {stats.total.toLocaleString()}
       </Box>
-      <Typography variant="h6" sx={{ 
-        fontWeight: 'bold', 
-        mb: 3,
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        backgroundClip: 'text',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-      }}>
-        Total {type} vulnerabilities found
-      </Typography>
       
+      {/* Gradient text using reusable component */}
+      <GradientText variant="h6" sx={{ mb: 3 }}>
+        Total {type} vulnerabilities found
+      </GradientText>
+      
+      {/* Stats grid using reusable StatsBox component */}
       <Grid container spacing={2}>
         {stats.critical > 0 && (
           <Grid item xs={6} sm={3}>
-            <Box sx={{ 
-              p: 2, 
-              textAlign: 'center', 
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #8B0000 0%, #B22222 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(139, 0, 0, 0.4)',
-            }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                {stats.critical}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Critical
-              </Typography>
-            </Box>
+            <StatsBox severity="critical" count={stats.critical} label="Critical" />
           </Grid>
         )}
         {stats.high > 0 && (
           <Grid item xs={6} sm={3}>
-            <Box sx={{ 
-              p: 2, 
-              textAlign: 'center', 
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #FF4444 0%, #FF6666 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(255, 68, 68, 0.4)',
-            }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                {stats.high}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                High
-              </Typography>
-            </Box>
+            <StatsBox severity="high" count={stats.high} label="High" />
           </Grid>
         )}
         {stats.medium > 0 && (
           <Grid item xs={6} sm={3}>
-            <Box sx={{ 
-              p: 2, 
-              textAlign: 'center', 
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #FFA500 0%, #FFB733 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(255, 165, 0, 0.4)',
-            }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                {stats.medium}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Medium
-              </Typography>
-            </Box>
+            <StatsBox severity="medium" count={stats.medium} label="Medium" />
           </Grid>
         )}
         {stats.low > 0 && (
           <Grid item xs={6} sm={3}>
-            <Box sx={{ 
-              p: 2, 
-              textAlign: 'center', 
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #90EE90 0%, #A8F3A8 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(144, 238, 144, 0.4)',
-            }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                {stats.low}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Low
-              </Typography>
-            </Box>
+            <StatsBox severity="low" count={stats.low} label="Low" />
           </Grid>
         )}
       </Grid>
@@ -250,29 +190,36 @@ const EnterpriseDashboard: React.FC = () => {
   );
 
   const renderOrganizationTable = (organizations: OrganizationRiskSummary[]) => (
-    <TableContainer component={Paper}>
+    <TableContainer 
+      component={Paper} 
+      sx={{ 
+        borderRadius: 2,
+        overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      }}
+    >
       <Table sx={{ minWidth: 650 }}>
         <TableHead>
-          <TableRow sx={{ bgcolor: 'primary.main' }}>
-            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
+          <TableRow sx={styleMixins.tableHeader()}>
+            <TableCell sx={styleMixins.tableHeaderCell()}>
               Organization
             </TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <TableCell align="center" sx={styleMixins.tableHeaderCell()}>
               Risk Score
             </TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <TableCell align="center" sx={styleMixins.tableHeaderCell()}>
               Repositories
             </TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <TableCell align="center" sx={styleMixins.tableHeaderCell()}>
               Total Alerts
             </TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <TableCell align="center" sx={styleMixins.tableHeaderCell()}>
               Code Scanning
             </TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <TableCell align="center" sx={styleMixins.tableHeaderCell()}>
               Secret Scanning
             </TableCell>
-            <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <TableCell align="center" sx={styleMixins.tableHeaderCell()}>
               Dependabot
             </TableCell>
           </TableRow>
@@ -280,73 +227,56 @@ const EnterpriseDashboard: React.FC = () => {
         <TableBody>
           {organizations
             .sort((a, b) => b.riskScore - a.riskScore)
-            .map((org) => (
+            .map((org, index) => (
               <TableRow 
                 key={org.organizationName}
-                sx={{ 
-                  '&:hover': { bgcolor: 'action.hover' },
-                  borderLeft: `4px solid ${
-                    org.riskScore > 50 ? theme.palette.error.main :
-                    org.riskScore > 25 ? theme.palette.warning.main :
-                    theme.palette.success.main
-                  }`
+                sx={{
+                  '&:nth-of-type(odd)': {
+                    backgroundColor: 'rgba(102, 126, 234, 0.02)',
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                    transform: 'scale(1.01)',
+                    transition: 'all 0.2s ease',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
               >
-                <TableCell sx={{ fontWeight: 'bold' }}>
+                <TableCell sx={{ fontWeight: 500 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <OrganizationIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    <OrganizationIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
                     {org.organizationName}
                   </Box>
                 </TableCell>
                 <TableCell align="center">
-                  <Chip 
-                    label={org.riskScore.toFixed(1)}
-                    size="small"
-                    color={org.riskScore > 50 ? 'error' : org.riskScore > 25 ? 'warning' : 'success'}
-                    sx={{ fontWeight: 'bold' }}
+                  <RiskScoreChip score={org.riskScore} />
+                </TableCell>
+                <TableCell align="center">
+                  <RepositoryCountChip count={org.totalRepositories} />
+                </TableCell>
+                <TableCell align="center">
+                  <AlertCountChip count={org.totalAlerts} />
+                </TableCell>
+                <TableCell align="center">
+                  <VulnerabilityCountWithWarning 
+                    total={org.codeScanning.total}
+                    critical={org.codeScanning.critical}
+                    high={org.codeScanning.high}
                   />
                 </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                  {org.totalRepositories}
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                  {org.totalAlerts}
+                <TableCell align="center">
+                  <VulnerabilityCountWithWarning 
+                    total={org.secretScanning.total}
+                    critical={org.secretScanning.critical}
+                    high={org.secretScanning.high}
+                  />
                 </TableCell>
                 <TableCell align="center">
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      {org.codeScanning.total}
-                    </Typography>
-                    {(org.codeScanning.critical + org.codeScanning.high) > 0 && (
-                      <Typography variant="caption" color="error">
-                        {org.codeScanning.critical + org.codeScanning.high} critical/high
-                      </Typography>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      {org.secretScanning.total}
-                    </Typography>
-                    {(org.secretScanning.critical + org.secretScanning.high) > 0 && (
-                      <Typography variant="caption" color="error">
-                        {org.secretScanning.critical + org.secretScanning.high} critical/high
-                      </Typography>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      {org.dependabot.total}
-                    </Typography>
-                    {(org.dependabot.critical + org.dependabot.high) > 0 && (
-                      <Typography variant="caption" color="error">
-                        {org.dependabot.critical + org.dependabot.high} critical/high
-                      </Typography>
-                    )}
-                  </Box>
+                  <VulnerabilityCountWithWarning 
+                    total={org.dependabot.total}
+                    critical={org.dependabot.critical}
+                    high={org.dependabot.high}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -359,28 +289,7 @@ const EnterpriseDashboard: React.FC = () => {
     <Fade in={true} timeout={800}>
       <Box>
         {/* Enhanced Header Section with Purple Gradient */}
-        <Paper
-          elevation={8}
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: 3,
-            p: 3,
-            mb: 3,
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              background: 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
-            },
-          }}
-        >
+        <Paper elevation={8} sx={styleMixins.headerCard()}>
           <Box 
             display="flex" 
             justifyContent="space-between" 
@@ -426,25 +335,7 @@ const EnterpriseDashboard: React.FC = () => {
           <Box sx={{ py: 2 }}>
             {/* Enterprise Search Section */}
             <Fade in={true} timeout={800} style={{ transitionDelay: '200ms' }}>
-              <Card 
-                elevation={8}
-                sx={{
-                  mb: 4,
-                  background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 3,
-                    background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                  },
-                }}
-              >
+              <Card sx={{ ...styleMixins.elevatedCard(), mb: 4 }}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <EnterpriseIcon 
@@ -455,18 +346,9 @@ const EnterpriseDashboard: React.FC = () => {
                         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
                       }} 
                     />
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
-                        fontWeight: 'bold',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        backgroundClip: 'text',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                      }}
-                    >
+                    <GradientText variant="h6">
                       Enterprise Analysis
-                    </Typography>
+                    </GradientText>
                   </Box>
                   
                   <Grid container spacing={3}>
@@ -505,15 +387,7 @@ const EnterpriseDashboard: React.FC = () => {
                         fullWidth
                         startIcon={isLoading ? <CircularProgress size={20} /> : <SearchIcon />}
                         sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          borderRadius: 2,
-                          fontWeight: 'bold',
-                          py: 1.5,
-                          '&:hover': {
-                            background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 6px 25px rgba(103, 126, 234, 0.4)',
-                          },
+                          ...styleMixins.primaryButton(),
                           '&:disabled': {
                             background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.08) 100%)',
                             color: 'rgba(0, 0, 0, 0.26)',

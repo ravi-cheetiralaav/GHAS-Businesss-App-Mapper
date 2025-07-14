@@ -42,11 +42,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
+    { path: '/enterprise-dashboard', label: 'Enterprise Risk', icon: <SecurityIcon /> },
     { path: '/', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/repositories', label: 'Repositories', icon: <RepositoryIcon /> },
     { path: '/business-applications', label: 'Business Apps', icon: <BusinessIcon /> },
-    { path: '/analytics', label: 'Analytics', icon: <AnalyticsIcon /> },
-    { path: '/enterprise-dashboard', label: 'Enterprise Risk', icon: <SecurityIcon /> },
+    { path: '/analytics', label: 'Org Risk', icon: <AnalyticsIcon /> },
   ];
 
   const drawer = (

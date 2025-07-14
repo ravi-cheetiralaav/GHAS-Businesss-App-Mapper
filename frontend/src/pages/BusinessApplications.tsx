@@ -28,6 +28,8 @@ import {
   useTheme,
   Avatar,
   Divider,
+  SxProps,
+  Theme,
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -41,6 +43,9 @@ import {
 } from '@mui/icons-material';
 import { businessApplicationsApi, githubApi, CreateBusinessApplicationRequest } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { styleMixins } from '../styles/mixins';
+import { COLORS } from '../styles/theme';
+import { GradientText } from '../components/common/StyledComponents';
 
 const BusinessApplications: React.FC = () => {
   const { organization } = useAuth();
@@ -228,28 +233,7 @@ const BusinessApplications: React.FC = () => {
     <Fade in={true} timeout={600}>
       <Box>
         {/* Enhanced Header */}
-        <Paper
-          elevation={8}
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: 3,
-            p: 3,
-            mb: 4,
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              background: 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
-            },
-          }}
-        >
+        <Paper elevation={8} sx={styleMixins.headerCard()}>
           <Box 
             display="flex" 
             justifyContent="space-between" 
@@ -319,58 +303,24 @@ const BusinessApplications: React.FC = () => {
           {businessApps?.map((app, index) => (
             <Grid item xs={12} md={6} lg={4} key={app.id}>
               <Grow in={true} timeout={800 + index * 200}>
-                <Card 
-                  elevation={8}
-                  sx={{
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                    position: 'relative',
+                <Card sx={[
+                  styleMixins.elevatedCard(),
+                  styleMixins.hoverEffect(-8),
+                  {
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 40px rgba(102, 126, 234, 0.2)',
-                    },
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: 3,
-                      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                    },
-                  }}
-                >
+                  }
+                ] as SxProps<Theme>}>
                   <CardContent sx={{ p: 3, flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar
-                        sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          mr: 2,
-                          width: 48,
-                          height: 48,
-                        }}
-                      >
+                      <Avatar sx={styleMixins.primaryAvatar()}>
                         <BusinessOutlined sx={{ fontSize: 24 }} />
                       </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography 
-                          variant="h6" 
-                          fontWeight="bold"
-                          sx={{ 
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            backgroundClip: 'text',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            mb: 0.5,
-                          }}
-                        >
+                        <GradientText variant="h6" sx={{ mb: 0.5 }}>
                           {app.name}
-                        </Typography>
+                        </GradientText>
                       </Box>
                     </Box>
                     
